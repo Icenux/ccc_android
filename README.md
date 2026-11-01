@@ -6,8 +6,30 @@ starting a conversation and the usage limits — from the phone, over
 [Tailscale](https://tailscale.com). Black, like ccc in the terminal; in
 English or Czech, as the phone is set.
 
-It talks to ccc's HTTP API (`src/ccc/api.py`); turning the API on:
-[Android app & API](../src/ccc/help/android-api.md).
+It is the phone client of [ccc_TUI](https://github.com/Luquas95/ccc_TUI) (the terminal app, daemon and
+HTTP API): it talks to ccc's API (`src/ccc/api.py` there); turning the API on:
+[Android app & API](https://github.com/Luquas95/ccc_TUI/blob/main/src/ccc/help/android-api.md).
+
+## Install
+
+Download `ccc.apk` from the [latest release](https://github.com/Luquas95/ccc_android/releases/latest) and
+open it on the phone (Android asks once to allow installs from that source). The app holds no secret: it
+reaches your ccc only after you pair it with the one-time QR code that ccc shows (*Devices* in ccc), and the
+token it gets then is made for that phone alone.
+
+Check the download before installing it:
+
+```bash
+sha256sum -c SHA256SUMS                                   # the file matches the list
+gpg --import release-signing-key.asc && gpg --verify SHA256SUMS.asc SHA256SUMS   # the list is signed by the maintainer
+apksigner verify --print-certs ccc.apk                    # the app is signed with the maintainer's key
+```
+
+The signing certificate's SHA-256 fingerprint is
+`81:60:8A:DC:97:06:A5:5E:B8:7D:8D:65:52:D7:2A:D8:FD:01:DE:C7:51:A3:51:BB:CF:B1:9E:58:E1:89:8D:14`; the GPG key
+of `SHA256SUMS.asc` is `D5AE 3DC0 F062 9B5B 97E8 1C45 6A16 DF02 11F8 C1A5` (`release-signing-key.asc`).
+The keys never leave the maintainer's computer: the release is built by GitHub Actions unsigned and signed
+there by hand.
 
 | Conversations | A conversation | New conversation |
 |---|---|---|
@@ -41,8 +63,8 @@ It talks to ccc's HTTP API (`src/ccc/api.py`); turning the API on:
   when GitHub has a newer release (`X.Y.Z` tag → CI builds the signed
   `ccc.apk`), with a *Download and install* button (Android asks first,
   and once to allow installing from the app). Details:
-  [Settings → Updating ccc](../src/ccc/help/settings.md#updating-ccc),
-  [Updating the app](../src/ccc/help/android-api.md#updating-the-app).
+  [Settings → Updating ccc](https://github.com/Luquas95/ccc_TUI/blob/main/src/ccc/help/settings.md#updating-ccc),
+  [Updating the app](https://github.com/Luquas95/ccc_TUI/blob/main/src/ccc/help/android-api.md#updating-the-app).
 - **Tabs** — Dashboard, Conversations, Archive and Live sessions.
   **Dashboard** is ccc's: the overview (conversations, running, queued,
   blocked, waiting for you, tokens today) and every conversation with its

@@ -1,0 +1,58 @@
+# A tag X.Y.Z (no "v") on main makes the release: GitHub builds and tests the app and keeps the UNSIGNED
+# release APK as the artifact "apk" of this run. The signing key never reaches GitHub: the maintainer runs
+# ccc-apk-sign-upload.sh X.Y.Z (~/Documents/CC/bin) on their computer, which downloads the artifact, signs
+# it and attaches ccc.apk, SHA256SUMS and SHA256SUMS.asc to the release. ccc_TUI's phone app looks for
+# updates there (app/.../AppUpdate.kt).
+name: Release
+
+on:
+  push:
+    tags: ["[0-9]*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: The tag must be on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - name: Release
+        run: gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "ccc for Android $GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+
+  build:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the build number counts commits
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Android SDK licences
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Test and build (unsigned)
+        run: ./gradlew --no-daemon testDebugUnitTest assembleRelease -Pccc.version="${GITHUB_REF_NAME}"
+      - name: The APK is unsigned
+        run: |
+          apk=app/build/outputs/apk/release/app-release-unsigned.apk
+          test -f "$apk"
+          mkdir -p out && cp "$apk" out/ccc-unsigned.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: out/ccc-unsigned.apk
+          if-no-files-found: error

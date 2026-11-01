@@ -35,9 +35,9 @@ class AppUpdateTest {
         assertNull(Versions.parse("1.x"))
     }
 
-    /** The rules ccc's own updater follows too: tests/fixtures/release-rules.json (gradle runs in android/app). */
+    /** The rules ccc_TUI's own updater follows too: a copy of tests/fixtures/release-rules.json of the ccc_TUI repository (gradle runs in app/). */
     private val rules = Json.parseToJsonElement(
-        File("../../tests/fixtures/release-rules.json").readText()
+        File("src/test/resources/release-rules.json").readText()
     ).jsonObject
 
     @Test
