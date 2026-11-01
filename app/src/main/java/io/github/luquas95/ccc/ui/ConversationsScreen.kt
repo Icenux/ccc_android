@@ -101,6 +101,7 @@ class ConversationsActions(
     /** A prompt for the live session (id, text). */
     val promptSession: (String, String) -> Unit = { _, _ -> },
     val applyUpdate: () -> Unit = {},
+    val restartCcc: () -> Unit = {},
     val updateApp: () -> Unit = {},
     /** The queue (tasks) of a conversation: what Enter on the TUI Dashboard opens. */
     val openQueue: (Int) -> Unit = {},
@@ -126,7 +127,7 @@ fun ConversationsScreen(
                 title = {
                     Column {
                         Text("ccc", color = CccColors.Accent, fontWeight = FontWeight.Bold)
-                        DaemonLine(state)
+                        DaemonLine(state, actions.restartCcc)
                     }
                 },
                 actions = {
@@ -384,7 +385,7 @@ private fun DashboardRow(conversation: Conversation, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DaemonLine(state: HomeState) {
+private fun DaemonLine(state: HomeState, onRestart: () -> Unit) {
     val (text, color) = when {
         !state.live && state.loaded -> stringResource(R.string.offline) to CccColors.Waiting
         state.status?.daemonRunning == true -> stringResource(R.string.daemon_running) to CccColors.Running
@@ -397,6 +398,28 @@ private fun DaemonLine(state: HomeState) {
             Spacer(Modifier.width(6.dp))
             Text(text, style = MaterialTheme.typography.labelMedium, color = color)
         }
+    }
+    if (state.status?.restartNeeded == true) RestartLine(onRestart)
+}
+
+/** Under the daemon's line, as in the TUI's sidebar: ccc was upgraded while it runs; a tap (after asking) restarts it. */
+@Composable
+private fun RestartLine(onRestart: () -> Unit) {
+    var asking by remember { mutableStateOf(false) }
+    Text(
+        stringResource(R.string.restart_needed),
+        style = MaterialTheme.typography.labelMedium,
+        color = CccColors.Waiting,
+        modifier = Modifier.clickable { asking = true },
+    )
+    if (asking) {
+        AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text(stringResource(R.string.restart_title)) },
+            text = { Text(stringResource(R.string.restart_confirm_hint)) },
+            confirmButton = { TextButton(onClick = { asking = false; onRestart() }) { Text(stringResource(R.string.restart_do)) } },
+            dismissButton = { TextButton(onClick = { asking = false }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 }
 
@@ -686,7 +709,14 @@ private fun ConversationRow(conversation: Conversation, listDetails: Set<String>
 fun UpdateOutcomeDialog(outcome: AppViewModel.UpdateOutcome, onClose: () -> Unit) {
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text(stringResource(if (outcome.ok) R.string.update_done_title else R.string.update_failed_title)) },
+        title = {
+            Text(stringResource(when {
+                outcome.restart && outcome.ok -> R.string.restart_done_title
+                outcome.restart -> R.string.restart_failed_title
+                outcome.ok -> R.string.update_done_title
+                else -> R.string.update_failed_title
+            }))
+        },
         text = { Text(outcome.text) },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.ok)) } },
     )

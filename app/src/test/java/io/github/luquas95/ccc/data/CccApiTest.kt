@@ -112,6 +112,21 @@ class CccApiTest {
     }
 
     @Test
+    fun `knows when ccc must be restarted after an upgrade and restarts it`() = runBlocking {
+        answers["status"] = 200 to """{"version": "0.1.3", "language": "en", "daemon_running": true, "conversations": 1,
+            "running": 0, "needs_approval": 0, "restart_needed": true}"""
+        assertEquals(true, api().status().restartNeeded)
+        // an older ccc says nothing about it
+        answers["status"] = 200 to """{"version": "0.1.2", "language": "en", "daemon_running": true, "conversations": 1,
+            "running": 0, "needs_approval": 0}"""
+        assertEquals(false, api().status().restartNeeded)
+
+        answers["restart"] = 200 to """{"ok": true, "message": "ccc is restarting."}"""
+        assertEquals("ccc is restarting.", api().restart().message)
+        assertEquals("POST", seen.last().method)
+    }
+
+    @Test
     fun `reads the list with the token`() = runBlocking {
         answers["conversations"] = 200 to """[{"id": 1, "name": "shop", "path": "/p", "status": "blocked_error",
             "delivery_mode": "interactive", "pending": 2, "needs_approval": true, "last_error": "boom",

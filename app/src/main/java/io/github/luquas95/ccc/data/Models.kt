@@ -18,6 +18,8 @@ data class Status(
     val update: UpdateInfo? = null,
     /** Kept for older apps: ccc's checkout's app build (the app now looks at GitHub's releases). */
     @SerialName("android_build") val androidBuild: Int = 0,
+    /** ccc was upgraded under its running processes (apt upgrade): they run the old code until restarted. */
+    @SerialName("restart_needed") val restartNeeded: Boolean = false,
 )
 
 @Serializable

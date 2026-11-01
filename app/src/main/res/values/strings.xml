@@ -273,6 +273,13 @@
     <string name="routine_delete_text">Routine “%1$s” will be deleted. This cannot be undone.</string>
     <string name="update_done_title">ccc updated</string>
     <string name="update_failed_title">Update failed</string>
+    <string name="restart_needed">↻ restart needed — tap</string>
+    <string name="restart_title">Restart ccc</string>
+    <string name="restart_confirm_hint">ccc was upgraded and still runs the old version. It restarts the TUI, the API and the daemon; interactive conversations keep running. It restarts only while no task runs.</string>
+    <string name="restart_do">Restart now</string>
+    <string name="restart_done_title">ccc is restarting</string>
+    <string name="restart_failed_title">Restart failed</string>
+    <string name="restart_done">ccc is restarting.</string>
     <string name="update_done">ccc was updated and restarts.</string>
     <string name="routine_conversation">Conversation</string>
     <string name="routine_edit">Edit routine</string>
