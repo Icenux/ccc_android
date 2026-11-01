@@ -65,6 +65,9 @@ class CccApi(
     /** Update ccc (git pull, install, restart); an error says why not (a task is running …). */
     suspend fun applyUpdate(): UpdateResult = post("update", "{}")
 
+    /** Restart ccc's services (after an upgrade of the package); an error says why not (a task is running …). */
+    suspend fun restart(): UpdateResult = post("restart", "{}")
+
     suspend fun conversations(archived: Boolean = false): List<Conversation> =
         get("conversations", if (archived) mapOf("archived" to "1") else emptyMap())
 

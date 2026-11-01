@@ -115,6 +115,12 @@ open class ScreenshotsTest {
     }
 
     @Test
+    fun restartNeeded() = shot("restart_needed", "shop-api") {
+        val status = home.status!!.copy(restartNeeded = true)
+        ConversationsScreen(home.copy(tab = HomeTab.DASHBOARD, status = status), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+    }
+
+    @Test
     fun archive() = shot("archive", "old-prototype") {
         ConversationsScreen(home.copy(tab = HomeTab.ARCHIVE, filter = "proto"), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
     }

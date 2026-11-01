@@ -271,6 +271,13 @@
     <string name="routine_delete_text">Rutina „%1$s“ bude smazána. Nelze vrátit zpět.</string>
     <string name="update_done_title">ccc aktualizováno</string>
     <string name="update_failed_title">Aktualizace se nezdařila</string>
+    <string name="restart_needed">↻ je třeba restart — klepni</string>
+    <string name="restart_title">Restartovat ccc</string>
+    <string name="restart_confirm_hint">ccc bylo aktualizováno a pořád běží stará verze. Restartuje TUI, API a daemon; interaktivní konverzace běží dál. Restartuje se, jen když neběží žádný úkol.</string>
+    <string name="restart_do">Restartovat teď</string>
+    <string name="restart_done_title">ccc se restartuje</string>
+    <string name="restart_failed_title">Restart se nezdařil</string>
+    <string name="restart_done">ccc se restartuje.</string>
     <string name="update_done">ccc bylo aktualizováno a restartuje se.</string>
     <string name="routine_conversation">Konverzace</string>
     <string name="routine_edit">Upravit rutinu</string>

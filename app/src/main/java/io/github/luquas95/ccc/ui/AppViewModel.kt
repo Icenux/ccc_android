@@ -247,7 +247,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** The result of the last "Update now": shown in a dialog (a snackbar is easy to miss), whatever it was. */
-    data class UpdateOutcome(val ok: Boolean, val text: String)
+    data class UpdateOutcome(val ok: Boolean, val text: String, val restart: Boolean = false)
 
     private val _updateOutcome = MutableStateFlow<UpdateOutcome?>(null)
     val updateOutcome: StateFlow<UpdateOutcome?> = _updateOutcome.asStateFlow()
@@ -267,6 +267,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 throw e
             } catch (e: IOException) {
                 _updateOutcome.value = UpdateOutcome(false, describe(e))
+            }
+            delay(3_000)
+            refresh()
+        }
+    }
+
+    /** Restart ccc's services after an upgrade of the package (only while no task runs); the outcome goes to [updateOutcome]. */
+    fun restartCcc() {
+        viewModelScope.launch {
+            val client = api ?: return@launch
+            try {
+                val result = client.restart()
+                _updateOutcome.value = UpdateOutcome(true, result.message.ifBlank { text(R.string.restart_done) }, restart = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: IOException) {
+                _updateOutcome.value = UpdateOutcome(false, describe(e), restart = true)
             }
             delay(3_000)
             refresh()

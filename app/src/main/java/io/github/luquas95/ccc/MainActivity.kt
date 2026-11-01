@@ -197,6 +197,7 @@ private fun App(model: AppViewModel) {
                 analytics = { model.open(Screen.Analytics) },
                 promptSession = { id, prompt -> model.more.promptSession(id, prompt, context.getString(R.string.prompt_queued)) },
                 applyUpdate = model::applyUpdate,
+                restartCcc = model::restartCcc,
             ),
         )
         is Screen.Conversation -> conversation?.takeIf { it.id == screen.id }?.let {
