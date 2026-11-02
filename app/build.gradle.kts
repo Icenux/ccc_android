@@ -21,11 +21,11 @@ val appBuild: Int = runCatching {
 }.getOrDefault(0).coerceAtLeast(1)
 
 android {
-    namespace = "io.github.luquas95.ccc"
+    namespace = "io.github.icenux.ccc"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.luquas95.ccc"
+        applicationId = "io.github.icenux.ccc"
         minSdk = 29
         targetSdk = 36
         versionCode = appBuild
