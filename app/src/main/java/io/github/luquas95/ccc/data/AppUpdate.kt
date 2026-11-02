@@ -67,7 +67,7 @@ const val APK_NAME = "ccc.apk"
  * not ccc's token, which this class doesn't know.
  */
 class ReleaseApi(
-    private val repo: String = "Luquas95/ccc_android",
+    private val repo: String = "Icenux/ccc_android",
     private val client: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
         .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)

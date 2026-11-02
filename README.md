@@ -6,13 +6,13 @@ starting a conversation and the usage limits — from the phone, over
 [Tailscale](https://tailscale.com). Black, like ccc in the terminal; in
 English or Czech, as the phone is set.
 
-It is the phone client of [ccc_TUI](https://github.com/Luquas95/ccc_TUI) (the terminal app, daemon and
+It is the phone client of [ccc_TUI](https://github.com/Icenux/ccc_TUI) (the terminal app, daemon and
 HTTP API): it talks to ccc's API (`src/ccc/api.py` there); turning the API on:
-[Android app & API](https://github.com/Luquas95/ccc_TUI/blob/main/src/ccc/help/android-api.md).
+[Android app & API](https://github.com/Icenux/ccc_TUI/blob/main/src/ccc/help/android-api.md).
 
 ## Install
 
-Download `ccc.apk` from the [latest release](https://github.com/Luquas95/ccc_android/releases/latest) and
+Download `ccc.apk` from the [latest release](https://github.com/Icenux/ccc_android/releases/latest) and
 open it on the phone (Android asks once to allow installs from that source). The app holds no secret: it
 reaches your ccc only after you pair it with the one-time QR code that ccc shows (*Devices* in ccc), and the
 token it gets then is made for that phone alone.
@@ -63,8 +63,8 @@ there by hand.
   when GitHub has a newer release (`X.Y.Z` tag → CI builds the signed
   `ccc.apk`), with a *Download and install* button (Android asks first,
   and once to allow installing from the app). Details:
-  [Settings → Updating ccc](https://github.com/Luquas95/ccc_TUI/blob/main/src/ccc/help/settings.md#updating-ccc),
-  [Updating the app](https://github.com/Luquas95/ccc_TUI/blob/main/src/ccc/help/android-api.md#updating-the-app).
+  [Settings → Updating ccc](https://github.com/Icenux/ccc_TUI/blob/main/src/ccc/help/settings.md#updating-ccc),
+  [Updating the app](https://github.com/Icenux/ccc_TUI/blob/main/src/ccc/help/android-api.md#updating-the-app).
 - **Tabs** — Dashboard, Conversations, Archive and Live sessions.
   **Dashboard** is ccc's: the overview (conversations, running, queued,
   blocked, waiting for you, tokens today) and every conversation with its
