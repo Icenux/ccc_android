@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -112,6 +114,7 @@ private fun App(model: AppViewModel) {
     val newVersion by model.newVersion.collectAsStateWithLifecycle()
     val nameOf = { id: Int -> (home.conversations + home.archived).firstOrNull { it.id == id }?.name.orEmpty() }
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // An export: to the share sheet (save it, mail it, send it to a chat …).
     LaunchedEffect(share) {
@@ -131,8 +134,11 @@ private fun App(model: AppViewModel) {
         install?.let { apk ->
             model.installStarted()
             if (!context.packageManager.canRequestPackageInstalls()) {
-                snackbar.showSnackbar(context.getString(R.string.app_allow_install))
+                // Nothing may suspend before the settings screen opens: installStarted() above changes this
+                // effect's key, so the effect is cancelled at its first suspension (a waiting snackbar here
+                // meant the settings never opened and the update silently did nothing).
                 context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")))
+                scope.launch { snackbar.showSnackbar(context.getString(R.string.app_allow_install)) }
                 return@let
             }
             ApkInstaller.install(context, apk)
