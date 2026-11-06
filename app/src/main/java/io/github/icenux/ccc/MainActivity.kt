@@ -16,6 +16,7 @@ import io.github.icenux.ccc.ui.UpdateOutcomeDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
@@ -116,18 +117,46 @@ private fun App(model: AppViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    // An export: to the share sheet (save it, mail it, send it to a chat …).
+    // An export: save it as a .md file (system file picker, no storage permission needed) or share it.
+    var pending by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<io.github.icenux.ccc.data.Export?>(null) }
+    val save = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
+        val export = pending
+        if (uri != null && export != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(export.markdown.toByteArray()) }
+            }
+        }
+        pending = null
+    }
     LaunchedEffect(share) {
         share?.let { export ->
             model.shared()
-            val send = Intent(Intent.ACTION_SEND).apply {
-                type = "text/markdown"
-                putExtra(Intent.EXTRA_SUBJECT, export.filename)
-                putExtra(Intent.EXTRA_TITLE, export.filename)
-                putExtra(Intent.EXTRA_TEXT, export.markdown)
-            }
-            context.startActivity(Intent.createChooser(send, export.filename))
+            pending = export
         }
+    }
+    pending?.let { export ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { androidx.compose.material3.Text(export.filename) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { save.launch(export.filename) }) {
+                    androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(R.string.export_save))
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/markdown"
+                        putExtra(Intent.EXTRA_SUBJECT, export.filename)
+                        putExtra(Intent.EXTRA_TITLE, export.filename)
+                        putExtra(Intent.EXTRA_TEXT, export.markdown)
+                    }
+                    pending = null
+                    context.startActivity(Intent.createChooser(send, export.filename))
+                }) { androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(R.string.export_share)) }
+            },
+        )
     }
     // The downloaded app: to the system installer — which first needs the one-time "install unknown apps" allowance.
     LaunchedEffect(install) {

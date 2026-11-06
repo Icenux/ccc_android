@@ -341,6 +341,9 @@
     <string name="notifications">Notifications</string>
     <string name="notifications_hint">While the app is closed, it keeps a connection to ccc and tells you about approvals (answer them right in the notification), errors, usage limits and finished replies. On Xiaomi / HyperOS also allow the app to run in the background (battery).</string>
     <string name="notifications_on">Notify while the app is closed</string>
+    <string name="notification_settings">Notification settings</string>
+    <string name="export_save">Save to file</string>
+    <string name="export_share">Share</string>
     <string name="battery">Battery optimisation settings</string>
     <string name="watch_title">ccc is watching your conversations</string>
     <string name="watch_text">Approvals and conversations that need you come as notifications.</string>
