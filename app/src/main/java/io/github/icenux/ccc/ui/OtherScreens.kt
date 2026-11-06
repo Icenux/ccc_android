@@ -636,6 +636,7 @@ fun SetupScreen(
     // Android 13+ asks before an app may notify; on a yes, watching starts.
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) onNotifications(true)
+        else context.startActivity(notificationSettingsIntent(context))
     }
     Scaffold(
         topBar = { TopBar(stringResource(if (signedIn) R.string.connection else R.string.setup_title), onBack) },
@@ -731,6 +732,10 @@ fun SetupScreen(
                     })
                 }
                 OutlinedButton(
+                    onClick = { context.startActivity(notificationSettingsIntent(context)) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.notification_settings)) }
+                OutlinedButton(
                     onClick = { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(stringResource(R.string.battery)) }
@@ -753,3 +758,8 @@ fun SetupScreen(
         }
     }
 }
+
+
+/** The system's notification settings of this app (allow / block, channels). */
+private fun notificationSettingsIntent(context: android.content.Context) =
+    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
