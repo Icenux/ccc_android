@@ -56,10 +56,9 @@ class Settings(context: Context) {
 /** The things a conversation's row can show besides its name and state: on the phone, as chosen. */
 object ListDetail {
     const val PENDING = "pending"
-    const val CONTEXT = "context"
     const val GIT = "git"
     const val PATH = "path"
 
-    val ALL = listOf(PENDING, CONTEXT, GIT, PATH)
-    val DEFAULT: Set<String> = setOf(PENDING, CONTEXT, GIT)
+    val ALL = listOf(PENDING, GIT, PATH)
+    val DEFAULT: Set<String> = setOf(PENDING, GIT)
 }

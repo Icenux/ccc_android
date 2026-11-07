@@ -381,10 +381,6 @@ fun CccSettingsScreen(
         var continueText by rememberSaveable(state) { mutableStateOf(state.continueText) }
         var reserve by rememberSaveable(state) { mutableStateOf(state.usageReserve?.toString() ?: "") }
         var reviewModel by rememberSaveable(state) { mutableStateOf(state.reviewModel) }
-        var window by rememberSaveable(state) { mutableStateOf(state.contextWindow?.toString() ?: "") }
-        var warn by rememberSaveable(state) { mutableStateOf(state.contextWarn.toString()) }
-        var danger by rememberSaveable(state) { mutableStateOf(state.contextDanger.toString()) }
-        var notify by rememberSaveable(state) { mutableStateOf(state.contextNotify) }
         var exportFolder by rememberSaveable(state) { mutableStateOf(state.exportFolder) }
         var exportSend by rememberSaveable(state) { mutableStateOf(state.exportSend) }
         var archiveFolder by rememberSaveable(state) { mutableStateOf(state.archiveFolder) }
@@ -396,7 +392,6 @@ fun CccSettingsScreen(
         var discordOn by rememberSaveable(state) { mutableStateOf(state.notifyDiscord.filterValues { it }.keys.joinToString(",")) }
         var choosing by rememberSaveable { mutableStateOf("") }
         val off = stringResource(R.string.off)
-        val auto = stringResource(R.string.auto)
         // One tab per kind of setting, so each is found in one place; the values of all the tabs are
         // kept together and one Save (on the tabs that have fields) sends them.
         var tab by rememberSaveable { mutableIntStateOf(initialTab) }
@@ -434,14 +429,6 @@ fun CccSettingsScreen(
                     OutlinedTextField(continueText, { continueText = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.continue_text)) })
                     Picker(stringResource(R.string.usage_reserve), reserve, listOf("" to off) + state.reserveChoices.map { "$it" to "$it %" }) { reserve = it }
                     Picker(stringResource(R.string.review_model), reviewModel, state.reviewModels.map { it.value to it.label }) { reviewModel = it }
-                }
-            }
-            if (tab == 1) item {
-                Section(stringResource(R.string.settings_context)) {
-                    Picker(stringResource(R.string.context_window), window, listOf("" to auto) + state.windowChoices.map { "$it" to "${it / 1000}k" }) { window = it }
-                    Picker(stringResource(R.string.context_warn), warn, state.thresholdChoices.map { "$it" to "$it %" }) { warn = it }
-                    Picker(stringResource(R.string.context_danger), danger, state.thresholdChoices.map { "$it" to "$it %" }) { danger = it }
-                    CheckLine(stringResource(R.string.context_notify), notify) { notify = it }
                 }
             }
             if (tab == 2) item {
@@ -518,10 +505,6 @@ fun CccSettingsScreen(
                         put("continue_text", JsonPrimitive(continueText))
                         put("usage_reserve", reserve.toIntOrNull()?.let { JsonPrimitive(it) } ?: JsonNull)
                         put("review_model", JsonPrimitive(reviewModel))
-                        put("context_window", window.toIntOrNull()?.let { JsonPrimitive(it) } ?: JsonNull)
-                        put("context_warn", JsonPrimitive(warn.toInt()))
-                        put("context_danger", JsonPrimitive(danger.toInt()))
-                        put("context_notify", JsonPrimitive(notify))
                         put("export_folder", JsonPrimitive(exportFolder))
                         put("export_send", JsonPrimitive(exportSend))
                         put("archive_folder", JsonPrimitive(archiveFolder))

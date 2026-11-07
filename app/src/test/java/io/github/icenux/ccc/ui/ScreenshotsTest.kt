@@ -22,7 +22,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.icenux.ccc.data.Analytics
 import io.github.icenux.ccc.data.CccSettings
 import io.github.icenux.ccc.data.Choice
-import io.github.icenux.ccc.data.ContextFill
 import io.github.icenux.ccc.data.AppRelease
 import io.github.icenux.ccc.data.Conversation
 import io.github.icenux.ccc.data.GitState
@@ -107,7 +106,7 @@ open class ScreenshotsTest {
         val update = UpdateInfo(
             available = true, behind = 3, remoteHead = "a1b2c3d", android = true, canApply = true,
             commits = listOf("a1b2c3d Add rate limiting to the orders API", "9f8e7d6 Fix the login redirect",
-                "5c4b3a2 Dashboard: context fill and git state"),
+                "5c4b3a2 Dashboard: git state"),
         )
         val status = home.status!!.copy(update = update, androidBuild = 6)
         ConversationsScreen(home.copy(tab = HomeTab.CONVERSATIONS, status = status, waiting = emptyList(), usage = null), ListDetail.DEFAULT,
@@ -238,7 +237,7 @@ open class ScreenshotsTest {
 
     @Test
     fun conversationListDetails() = shot("list_details", "computer.tailnet", scrollTo = io.github.icenux.ccc.R.string.detail_path) {
-        SetupScreen("computer.tailnet.ts.net", true, true, setOf(ListDetail.CONTEXT, ListDetail.GIT), { _, _ -> },
+        SetupScreen("computer.tailnet.ts.net", true, true, setOf(ListDetail.GIT), { _, _ -> },
             SnackbarHostState(), {}, { _, _, _ -> }, {}, {})
     }
 
@@ -357,7 +356,6 @@ open class ScreenshotsTest {
             groups = "project", groupsChoices = listOf(Choice("project", "By project, and your own groups"), Choice("own", "Only your own groups")),
             continueText = "Continue where you stopped.", usageReserve = 80, reserveChoices = listOf(50, 80, 90),
             reviewModel = "", reviewModels = listOf(Choice("", "Same as the conversation"), Choice("opus", "Opus")),
-            windowChoices = listOf(200_000, 1_000_000), thresholdChoices = listOf(60, 75, 90),
             sendChoices = listOf(Choice("", "Only save to the folder")), telegram = TelegramState(true, "123456789", true),
             launchPresets = listOf("Quick fix", "Review"),
         )
@@ -431,16 +429,16 @@ open class ScreenshotsTest {
             conversations = listOf(
                 Conversation(1, "shop-api", "/home/you/projects/shop-api", "running", "interactive", pending = 2,
                     needsApproval = true, group = Group("own:Release 2.1", "Release 2.1"),
-                    context = ContextFill(124_000, 62, ""), git = GitState("feature/rate-limit", 12, 3, 2, 0),
+                    git = GitState("feature/rate-limit", 12, 3, 2, 0),
                     goal = GoalBrief(7, "running", "running", "Claude works on round 3", 3, 5)),
                 Conversation(2, "docs-site", "/home/you/projects/docs-site", "waiting_retry", "interactive", pending = 1,
                     group = Group("own:Release 2.1", "Release 2.1"),
-                    context = ContextFill(172_000, 86, "warn"), git = GitState("main", 0, 0, 0, 1)),
+                    git = GitState("main", 0, 0, 0, 1)),
                 Conversation(3, "data-pipeline", "/home/you/projects/data-pipeline", "blocked_error", "headless",
                     lastError = "pytest failed: 3 tests", group = Group("project:/home/you/projects/data-pipeline", "data-pipeline")),
                 Conversation(4, "mobile-app", "/home/you/projects/mobile-app", "idle", "interactive", unseen = true,
                     group = Group("project:/home/you/projects/mobile-app", "mobile-app"),
-                    context = ContextFill(186_000, 93, "danger"), git = GitState("fix/login-crash", 4, 1, 1, 0)),
+                    git = GitState("fix/login-crash", 4, 1, 1, 0)),
                 Conversation(5, "infra", "/home/you/projects/infra", "running", "remote_control",
                     group = Group("project:/home/you/projects/infra", "infra"),
                     goal = GoalBrief(8, "passed", "met", "", 2, 5)),

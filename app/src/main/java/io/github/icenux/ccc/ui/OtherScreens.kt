@@ -745,7 +745,6 @@ fun SetupScreen(
                 Text(stringResource(R.string.list_details_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
                 listOf(
                     ListDetail.PENDING to R.string.detail_pending,
-                    ListDetail.CONTEXT to R.string.detail_context,
                     ListDetail.GIT to R.string.detail_git,
                     ListDetail.PATH to R.string.detail_path,
                 ).forEach { (key, label) ->

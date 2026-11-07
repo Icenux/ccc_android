@@ -68,7 +68,6 @@ data class Conversation(
     @SerialName("next_retry_at") val nextRetryAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     val group: Group? = null,
-    val context: ContextFill? = null,
     val git: GitState? = null,
     val goal: GoalBrief? = null,
 ) {
@@ -87,17 +86,6 @@ data class GoalBrief(
 ) {
     val running: Boolean get() = status == "running"
     val icon: String get() = when (status) { "running" -> "◎"; "passed" -> "✅"; "stopped" -> "■"; "error" -> "✖"; else -> "⛔" }
-}
-
-/** How full the context window is; `level` is "", "warn" or "danger" by ccc's Settings thresholds. */
-@Serializable
-data class ContextFill(
-    val tokens: Int,
-    val percent: Int? = null,
-    val level: String = "",
-) {
-    /** 62 % (or 124k when the window is unknown). */
-    val text: String get() = percent?.let { "$it %" } ?: if (tokens >= 1000) "${tokens / 1000}k" else tokens.toString()
 }
 
 /** The folder's branch and what is uncommitted / ahead / behind (null counts: no base to compare). */
