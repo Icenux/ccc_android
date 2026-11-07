@@ -263,7 +263,7 @@ private fun LazyListScope.banners(state: HomeState, newVersion: AppRelease?, act
     }
 }
 
-/** The TUI's Dashboard: the overview line, then every conversation with its status, queue, tokens today, context, git and folder. */
+/** The TUI's Dashboard: the overview line, then every conversation with its status, queue, tokens today, git and folder. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Dashboard(state: HomeState, newVersion: AppRelease?, actions: ConversationsActions, appUpdate: AppUpdateState) {
@@ -349,17 +349,6 @@ private fun DashboardRow(conversation: Conversation, onClick: () -> Unit) {
                     color = CccColors.Muted)
                 Text(stringResource(R.string.tokens_today_short, tokenText(conversation.tokensToday)),
                     style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-                conversation.context?.let { context ->
-                    Text(
-                        stringResource(R.string.context_short, context.text),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = when (context.level) {
-                            "danger" -> CccColors.Error
-                            "warn" -> CccColors.Waiting
-                            else -> CccColors.Muted
-                        },
-                    )
-                }
             }
             conversation.goal?.let { goal ->
                 Text(
@@ -664,32 +653,15 @@ private fun ConversationRow(conversation: Conversation, listDetails: Set<String>
                     style = MaterialTheme.typography.bodySmall,
                     color = if (highlighted) statusColor(state, conversation.needsApproval) else CccColors.Muted,
                 )
-                val context = conversation.context.takeIf { ListDetail.CONTEXT in listDetails }
                 val git = conversation.git?.text?.takeIf { ListDetail.GIT in listDetails && it.isNotEmpty() }
-                if (context != null || git != null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (context != null) {
-                            Text(
-                                stringResource(R.string.context_short, context.text),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = when (context.level) {
-                                    "danger" -> CccColors.Error
-                                    "warn" -> CccColors.Waiting
-                                    else -> CccColors.Muted
-                                },
-                            )
-                        }
-                        if (git != null) {
-                            Text(
-                                git,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = CccColors.Title,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false),
-                            )
-                        }
-                    }
+                if (git != null) {
+                    Text(
+                        git,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CccColors.Title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 if (ListDetail.PATH in listDetails) {
                     Text(shortPath(conversation.path), style = MaterialTheme.typography.bodySmall,

@@ -69,12 +69,10 @@
     <string name="app_install_failed">The app could not be installed: %1$s</string>
     <string name="app_allow_install">Allow installing from this app, then tap the button again.</string>
     <string name="app_new_version">A new version of the app is available: %1$s.</string>
-    <string name="context_short">context %1$s</string>
     <string name="goal_line">%1$s goal %2$d/%3$d · %4$s</string>
     <string name="list_details">Conversation list</string>
     <string name="list_details_hint">What each conversation shows besides its name and state. Kept on this phone.</string>
     <string name="detail_pending">Queued tasks</string>
-    <string name="detail_context">Context fill</string>
     <string name="detail_git">Git state</string>
     <string name="detail_path">Folder</string>
     <string name="approvals">Approvals</string>
@@ -214,17 +212,12 @@
     <string name="archived_months">Finished months archived.</string>
     <string name="archive_folder">Monthly analytics archive folder (empty = off)</string>
     <string name="archive_months">Archive finished months now</string>
-    <string name="auto">Auto</string>
     <string name="backed_up">Backed up.</string>
     <string name="backup_hint">Backed up automatically every day; the newest 14 copies are kept.</string>
     <string name="backup_now">Back up now</string>
     <string name="blocked_minutes">Total time blocked on rate limits: %1$s min</string>
     <string name="ccc_settings">ccc settings</string>
     <string name="connection">Connection to ccc</string>
-    <string name="context_danger">Context alarm</string>
-    <string name="context_notify">Notify (Telegram / Discord) at the warning</string>
-    <string name="context_warn">Context warning</string>
-    <string name="context_window">Context window</string>
     <string name="continue_text">Continue text (after a usage limit)</string>
     <string name="deleted">(deleted)</string>
     <string name="discord_off_hint">off — paste a channel webhook URL</string>
@@ -299,7 +292,6 @@
     <string name="send_test">Send test message</string>
     <string name="choose_messages">Choose messages…</string>
     <string name="ok">OK</string>
-    <string name="settings_context">Context</string>
     <string name="settings_data">Data</string>
     <string name="settings_notifications">Notifications</string>
     <string name="tab_presets">Presets</string>

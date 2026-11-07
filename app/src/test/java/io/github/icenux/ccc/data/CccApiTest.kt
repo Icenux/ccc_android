@@ -56,7 +56,7 @@ class CccApiTest {
     private fun api(token: String = "secret") = CccApi("http://127.0.0.1:${server.address.port}", token)
 
     @Test
-    fun `reads the context fill and the git state of a conversation`() = runBlocking {
+    fun `reads the git state of a conversation and ignores the context an older ccc still sends`() = runBlocking {
         answers["conversations"] = 200 to """[{"id": 1, "name": "shop", "path": "/p", "status": "idle",
             "delivery_mode": "interactive", "context": {"tokens": 186000, "percent": 93, "level": "danger"},
             "git": {"branch": "feature-x", "added": 12, "removed": 3, "ahead": 2, "behind": 0}},
@@ -65,10 +65,7 @@ class CccApiTest {
 
         val (shop, docs) = api().conversations()
 
-        assertEquals("93 %", shop.context?.text)
-        assertEquals("danger", shop.context?.level)
         assertEquals("feature-x +12−3 ↑2", shop.git?.text)
-        assertNull(docs.context)
         assertNull(docs.git)
     }
 

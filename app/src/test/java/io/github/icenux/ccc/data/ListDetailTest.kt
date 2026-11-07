@@ -18,11 +18,4 @@ class ListDetailTest {
         assertEquals("fix +4−1 ↑1", GitState("fix", 4, 1, 1, 0).text)
         assertEquals("", GitState(null).text)
     }
-
-    @Test
-    fun `context is a percent, or tokens when the window is unknown`() {
-        assertEquals("62 %", ContextFill(124_000, 62).text)
-        assertEquals("124k", ContextFill(124_000).text)
-        assertEquals("900", ContextFill(900).text)
-    }
 }
