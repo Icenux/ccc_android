@@ -431,6 +431,12 @@ private val RETRYABLE = setOf(ConversationStatus.BLOCKED_ERROR, ConversationStat
 private fun Header(detail: io.github.icenux.ccc.data.ConversationDetail) {
     Column(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Text(detail.path, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted, fontFamily = CccFonts.Mono)
+        detail.context?.let { context ->
+            Text(
+                stringResource(R.string.context_short, context.text) + context.sizes.takeIf { it.isNotEmpty() }?.let { " ($it)" }.orEmpty(),
+                style = MaterialTheme.typography.bodySmall, color = contextColor(context),
+            )
+        }
         if (detail.flags.isNotEmpty()) {
             Text(detail.flags, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
         }

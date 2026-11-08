@@ -68,9 +68,9 @@ class CccApiTest {
     }
 
     @Test
-    fun `reads the git state of a conversation and ignores the context an older ccc still sends`() = runBlocking {
+    fun `reads the git state and the context fill of a conversation`() = runBlocking {
         answers["conversations"] = 200 to """[{"id": 1, "name": "shop", "path": "/p", "status": "idle",
-            "delivery_mode": "interactive", "context": {"tokens": 186000, "percent": 93, "level": "danger"},
+            "delivery_mode": "interactive", "context": {"percent": 93.4, "tokens": 186800, "window": 200000},
             "git": {"branch": "feature-x", "added": 12, "removed": 3, "ahead": 2, "behind": 0}},
             {"id": 2, "name": "docs", "path": "/d", "status": "idle", "delivery_mode": "headless",
             "context": null, "git": null}]"""
@@ -79,6 +79,19 @@ class CccApiTest {
 
         assertEquals("feature-x +12−3 ↑2", shop.git?.text)
         assertNull(docs.git)
+        assertEquals("93 %", shop.context?.text)
+        assertEquals("187k / 200k", shop.context?.sizes)
+        assertEquals("danger", shop.context?.level)
+        assertNull(docs.context)  // a ccc that does not report it (yet)
+    }
+
+    @Test
+    fun `context level is warn over 80 percent and danger over 90`() {
+        assertEquals("", ContextFill(80.0).level)
+        assertEquals("warn", ContextFill(80.5).level)
+        assertEquals("warn", ContextFill(90.0).level)
+        assertEquals("danger", ContextFill(90.1).level)
+        assertEquals("", ContextFill(42.0, 84_000).sizes)  // no window: no sizes
     }
 
     @Test

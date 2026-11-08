@@ -689,6 +689,10 @@ internal fun ConversationCard(conversation: Conversation, details: Set<String>, 
                         Text("  ·  " + rest.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = CccColors.Faint,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
+                    conversation.context?.let { context ->
+                        Text("  ·  " + stringResource(R.string.context_short, context.text), style = MaterialTheme.typography.labelMedium,
+                            color = contextColor(context), maxLines = 1)
+                    }
                 }
                 conversation.goal?.let { goal ->
                     Text(

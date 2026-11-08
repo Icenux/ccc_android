@@ -181,3 +181,10 @@ fun UsageCard(usage: Usage, modifier: Modifier = Modifier) {
 @Composable
 fun Modifier.bottomBarInsets(): Modifier =
     windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+
+/** Context fill colour like the limits: over 80 % amber, over 90 % red, else muted. */
+internal fun contextColor(context: io.github.icenux.ccc.data.ContextFill) = when (context.level) {
+    "danger" -> CccColors.Error
+    "warn" -> CccColors.Amber
+    else -> CccColors.Muted
+}
