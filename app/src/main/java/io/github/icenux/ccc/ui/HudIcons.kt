@@ -64,6 +64,15 @@ object HudIcons {
         moveTo(9f, 15f); lineTo(11f, 17f); lineTo(15f, 13f)
     }
 
+    /** A helper: a small head with an antenna (the Claude Code agents). */
+    val Helper = icon("Helper") {
+        box(5f, 8f, 19f, 20f)
+        moveTo(12f, 8f); lineTo(12f, 4f)
+        dot(12f, 3.5f)
+        dot(9f, 13f); dot(15f, 13f)
+        moveTo(9f, 17f); lineTo(15f, 17f)
+    }
+
     val Live = icon("Live") {
         dot(12f, 12f)
         moveTo(8.5f, 8.5f); curveTo(6.5f, 10.5f, 6.5f, 13.5f, 8.5f, 15.5f)

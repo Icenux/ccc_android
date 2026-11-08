@@ -93,7 +93,7 @@ fun destOf(screen: Screen, tab: HomeTab): Dest = when (screen) {
 /** Screens that carry the bottom bar: the others (the chat with its message field, sheets, sign-in) use the whole screen. */
 fun hasBottomBar(screen: Screen): Boolean = when (screen) {
     Screen.Conversations, is Screen.ConversationDetail, is Screen.Tasks, is Screen.Runs, is Screen.Agents,
-    Screen.Routines, Screen.Analytics, Screen.CccSettings, Screen.Approvals -> true
+    Screen.Routines, Screen.Subagents, Screen.Analytics, Screen.CccSettings, Screen.Approvals -> true
     else -> false
 }
 
@@ -285,6 +285,7 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
         MenuEntry(HudIcons.Archive, stringResource(R.string.archive), CccColors.Dim, onMain && home.tab == HomeTab.ARCHIVE,
             home.archived.size.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.ARCHIVE) },
         MenuEntry(HudIcons.Routines, stringResource(R.string.routines), purple, screen == Screen.Routines) { it.screen(Screen.Routines) },
+        MenuEntry(HudIcons.Helper, stringResource(R.string.subagents), CccColors.Claude, screen == Screen.Subagents) { it.screen(Screen.Subagents) },
         MenuEntry(HudIcons.Live, stringResource(R.string.live_sessions), pink, onMain && home.tab == HomeTab.SESSIONS,
             state.liveSessions?.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.SESSIONS) },
     )

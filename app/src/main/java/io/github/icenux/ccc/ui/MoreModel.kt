@@ -9,6 +9,8 @@ import io.github.icenux.ccc.data.PromptPreset
 import io.github.icenux.ccc.data.Reviews
 import io.github.icenux.ccc.data.Routine
 import io.github.icenux.ccc.data.Routines
+import io.github.icenux.ccc.data.Subagent
+import io.github.icenux.ccc.data.SubagentOptions
 import io.github.icenux.ccc.data.WorkflowTemplate
 import io.github.icenux.ccc.data.Workflows
 import java.io.IOException
@@ -37,6 +39,14 @@ data class AgentsState(
     val templates: List<WorkflowTemplate> = emptyList(),
 )
 
+/** The agents (files in .claude/agents) of [path]'s project and the user's; [editing] is one opened with its prompt. */
+data class SubagentsState(
+    val path: String = "",
+    val agents: List<Subagent>? = null,
+    val options: SubagentOptions? = null,
+    val editing: Subagent? = null,
+)
+
 /**
  * The state of the screens beyond the conversations (agents, routines, live
  * sessions, analytics, ccc's settings), owned by [AppViewModel]: [run]
@@ -52,6 +62,9 @@ class MoreModel(
 
     private val _routines = MutableStateFlow<Routines?>(null)
     val routines: StateFlow<Routines?> = _routines.asStateFlow()
+
+    private val _subagents = MutableStateFlow(SubagentsState())
+    val subagents: StateFlow<SubagentsState> = _subagents.asStateFlow()
 
     private val _sessions = MutableStateFlow<List<LiveSession>?>(null)
     val sessions: StateFlow<List<LiveSession>?> = _sessions.asStateFlow()
@@ -133,6 +146,72 @@ class MoreModel(
     fun runRoutine(id: Int) = go { api ->
         say(api.runRoutine(id).label)
         _routines.value = api.routines()
+    }
+
+    // --- agents (the files in .claude/agents) ------------------------------------------------------
+
+    /** What a new agent is offered, once; the list itself is loaded for the folder the screen shows. */
+    fun openSubagents() {
+        if (_subagents.value.options == null) go { api -> _subagents.update { it.copy(options = api.subagentOptions()) } }
+    }
+
+    /** The agents for [path] (a folder; "" = only the user's). */
+    fun loadSubagents(path: String) {
+        _subagents.update { it.copy(path = path, agents = null) }
+        go { api ->
+            val found = api.subagents(path)
+            _subagents.update { if (it.path == path) it.copy(agents = found) else it }
+        }
+    }
+
+    private fun reloadSubagents() {
+        val path = _subagents.value.path
+        go { api -> _subagents.update { it.copy(agents = api.subagents(path)) } }
+    }
+
+    /** Open one agent for editing: the list has no prompts, so it is fetched whole. */
+    fun editSubagent(agent: Subagent) {
+        go { api -> _subagents.update { it.copy(editing = api.subagent(agent.scope, agent.name, it.path)) } }
+    }
+
+    fun closeSubagent() = _subagents.update { it.copy(editing = null) }
+
+    /** [restartHint] is said when the agent is the first in a new folder (Claude Code has to be restarted to see it). */
+    fun createSubagent(agent: Subagent, restartHint: String, then: (Boolean) -> Unit = {}) {
+        val path = _subagents.value.path
+        scope.launch {
+            val ok = run { api ->
+                val made = api.createSubagent(agent, path)
+                if (made.newFolder) say(restartHint)
+                _subagents.update { it.copy(agents = api.subagents(path)) }
+            }
+            then(ok)
+        }
+    }
+
+    fun saveSubagent(agent: Subagent) {
+        val path = _subagents.value.path
+        scope.launch {
+            val ok = run { api -> api.editSubagent(agent, path) }
+            if (ok) { closeSubagent(); reloadSubagents() }
+        }
+    }
+
+    fun deleteSubagent(agent: Subagent) {
+        val path = _subagents.value.path
+        go { api ->
+            api.deleteSubagent(agent.scope, agent.name, path)
+            _subagents.update { it.copy(agents = api.subagents(path)) }
+        }
+    }
+
+    /** The instructions for a new agent; [then] gets them, or null when ccc could not (the error is shown). */
+    fun subagentPrompt(description: String, access: String, claude: Boolean, then: (String?) -> Unit) {
+        scope.launch {
+            var text: String? = null
+            run { api -> text = api.subagentPrompt(description, access, claude).prompt }
+            then(text)
+        }
     }
 
     // --- live sessions -------------------------------------------------------------------------

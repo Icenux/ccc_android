@@ -33,6 +33,8 @@ import io.github.icenux.ccc.ui.AppViewModel
 import io.github.icenux.ccc.ui.CccSettingsScreen
 import io.github.icenux.ccc.ui.RoutinesActions
 import io.github.icenux.ccc.ui.RoutinesScreen
+import io.github.icenux.ccc.ui.SubagentsActions
+import io.github.icenux.ccc.ui.SubagentsScreen
 import io.github.icenux.ccc.notify.WatchService
 import io.github.icenux.ccc.ui.SettingsActions
 import io.github.icenux.ccc.ui.TerminalActions
@@ -115,6 +117,7 @@ private fun App(model: AppViewModel) {
     val diff by model.diff.collectAsStateWithLifecycle()
     val agents by model.more.agents.collectAsStateWithLifecycle()
     val routines by model.more.routines.collectAsStateWithLifecycle()
+    val subagents by model.more.subagents.collectAsStateWithLifecycle()
     val sessions by model.more.sessions.collectAsStateWithLifecycle()
     val analytics by model.more.analytics.collectAsStateWithLifecycle()
     val cccSettings by model.more.settings.collectAsStateWithLifecycle()
@@ -350,6 +353,21 @@ private fun App(model: AppViewModel) {
                 delete = model.more::deleteRoutine,
                 enable = model.more::enableRoutine,
                 run = model.more::runRoutine,
+            ),
+        )
+        Screen.Subagents -> SubagentsScreen(
+            state = subagents,
+            folders = home.conversations.distinctBy { it.path }.map { it.path to "${it.name} · ${it.path}" },
+            snackbar = snackbar,
+            actions = SubagentsActions(
+                back = model::back,
+                folder = model.more::loadSubagents,
+                edit = model.more::editSubagent,
+                closeEdit = model.more::closeSubagent,
+                save = model.more::saveSubagent,
+                create = { agent, then -> model.more.createSubagent(agent, context.getString(R.string.subagent_restart), then) },
+                delete = model.more::deleteSubagent,
+                prompt = model.more::subagentPrompt,
             ),
         )
         Screen.Analytics -> AnalyticsScreen(

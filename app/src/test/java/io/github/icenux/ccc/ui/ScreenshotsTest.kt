@@ -179,6 +179,31 @@ open class ScreenshotsTest {
     }
 
     @Test
+    fun subagents() = shot("subagents", "test-runner") {
+        SubagentsScreen(subagentsState, listOf("/home/me/shop-api" to "shop-api · /home/me/shop-api"), SnackbarHostState(),
+            SubagentsActions({}, {}, {}, {}, {}, { _, _ -> }, {}, { _, _, _, _ -> }))
+    }
+
+    /** A dialog with a text field never gets "idle" in Robolectric (the cursor keeps blinking): the clock is stepped by hand. */
+    @Test
+    fun subagent_create() {
+        compose.setContent {
+            CccTheme {
+                SubagentsScreen(subagentsState, listOf("/home/me/shop-api" to "shop-api · /home/me/shop-api"), SnackbarHostState(),
+                    SubagentsActions({}, {}, {}, {}, {}, { _, _ -> }, {}, { _, _, _, _ -> }))
+            }
+        }
+        compose.onAllNodesWithText("test-runner", substring = true, useUnmergedTree = true).onFirst().assertExists()
+        compose.mainClock.autoAdvance = false
+        compose.onAllNodesWithContentDescription(compose.activity.getString(io.github.icenux.ccc.R.string.subagent_add)).onFirst().performClick()
+        repeat(30) {
+            compose.mainClock.advanceTimeByFrame()
+            org.robolectric.shadows.ShadowLooper.idleMainLooper()
+        }
+        saveWithDialog("subagent_create")
+    }
+
+    @Test
     fun analytics() = shot("analytics", "mobile-app") {
         AnalyticsScreen(analyticsState, home.usage, SnackbarHostState(), {}, { _, _ -> }, {})
     }
@@ -398,6 +423,28 @@ open class ScreenshotsTest {
                     "every day at 22:00", nextRunAt = "2026-10-22T22:00:00", lastStatus = "queued in its conversation"),
                 Routine(2, 3, "data-pipeline", "Weekly report", "Summarise last week's failed jobs", "weekly", "monday 08:00",
                     "Mondays at 08:00", fresh = true, enabled = false),
+            ),
+        )
+
+        val subagentsState = io.github.icenux.ccc.ui.SubagentsState(
+            path = "/home/me/shop-api",
+            agents = listOf(
+                io.github.icenux.ccc.data.Subagent("test-runner", "Runs the tests and reports only the result. Use after every change.", "project",
+                    listOf("Bash", "Read", "Grep"), "haiku", file = "test-runner.md"),
+                io.github.icenux.ccc.data.Subagent("code-reviewer", "Reviews code changes for bugs and security problems. Use proactively after code is written.",
+                    "project", listOf("Read", "Grep", "Glob", "Bash"), "sonnet", file = "code-reviewer.md"),
+                io.github.icenux.ccc.data.Subagent("draft", "", "project", null, "", problem = "no description", file = "draft.md"),
+                io.github.icenux.ccc.data.Subagent("code-explorer", "Maps where code is used before a refactor.", "user", listOf("Read", "Grep", "Glob"), "haiku",
+                    file = "code-explorer.md"),
+            ),
+            options = io.github.icenux.ccc.data.SubagentOptions(
+                templates = listOf(io.github.icenux.ccc.data.SubagentTemplate("test-runner", "Test runner", "Runs the tests and reports only the result.", listOf("Bash"), "haiku", "You run the tests.")),
+                access = listOf(
+                    io.github.icenux.ccc.data.SubagentChoice("read", "Only read and search (safe)", listOf("Read", "Grep", "Glob")),
+                    io.github.icenux.ccc.data.SubagentChoice("run", "Also run commands (tests, git …)", listOf("Read", "Grep", "Glob", "Bash")),
+                ),
+                effort = listOf(io.github.icenux.ccc.data.SubagentChoice("balanced", "Balanced (Sonnet)", model = "sonnet")),
+                models = listOf("", "sonnet", "opus", "haiku"),
             ),
         )
 
