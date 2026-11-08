@@ -410,4 +410,6 @@
     <string name="goal_conversation">Conversation %1$s</string>
     <string name="claude_working">Claude is working</string>
     <string name="jump_to_newest">Jump to the newest</string>
+    <string name="prompt_title">Claude Code asks in the terminal</string>
+    <string name="prompt_cancel">Cancel (Esc)</string>
 </resources>

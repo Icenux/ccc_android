@@ -73,6 +73,9 @@ data class AppUpdateState(val phase: Phase = Phase.IDLE, val progress: Float = 0
     val busy: Boolean get() = phase != Phase.IDLE
 }
 
+/** How often the open chat reads the terminal for a question of Claude Code. */
+private const val PROMPT_POLL_MS = 2_000L
+
 /** How often the app looks for a new release when it comes to the foreground. */
 private const val RELEASE_CHECK_MS = 6 * 60 * 60 * 1000L
 
@@ -129,6 +132,8 @@ data class ConversationState(
     val sending: Boolean = false,
     /** Files for the @-mention being typed. */
     val mentions: List<String> = emptyList(),
+    /** A question Claude Code asks in its terminal (not an approval of ccc's), read from the screen. */
+    val prompt: io.github.icenux.ccc.data.TerminalPrompt? = null,
 ) {
     val hasOlder: Boolean get() = (messages.firstOrNull()?.index ?: 0) > 0
 }
@@ -673,8 +678,47 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- one conversation ----------------------------------------------------------------
 
+    private var promptJob: Job? = null
+
+    /**
+     * An interactive Claude Code asks its questions (permissions, plans) in the terminal, which ccc's approvals
+     * don't see: while the chat is open its screen is read every two seconds and a menu on it is offered here.
+     */
+    private fun watchPrompt(id: Int) {
+        promptJob?.cancel()
+        promptJob = viewModelScope.launch {
+            while (true) {
+                val state = _conversation.value
+                if (state?.id != id) return@launch
+                val client = api
+                val interactive = state.detail?.deliveryMode.let { it == "interactive" || it == "remote_control" }
+                if (foreground && client != null && interactive && _screens.value.lastOrNull() == Screen.Conversation(id)) {
+                    val found = try {
+                        io.github.icenux.ccc.data.TerminalPrompts.detect(client.terminal(id).screen)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: IOException) {
+                        null
+                    }
+                    _conversation.update { if (it?.id == id && it.prompt != found) it.copy(prompt = found) else it }
+                }
+                delay(PROMPT_POLL_MS)
+            }
+        }
+    }
+
+    /** Answer the terminal's question with option [number], or (null) cancel it with Esc. */
+    fun answerPrompt(number: Int?) {
+        val id = _conversation.value?.id ?: return
+        _conversation.update { it?.copy(prompt = null) }
+        action { client ->
+            if (number != null) client.terminalType(id, number.toString()) else client.terminalKeys(id, listOf("Escape"))
+        }
+    }
+
     private fun openConversation(id: Int) {
         _conversation.value = ConversationState(id)
+        watchPrompt(id)
         viewModelScope.launch {
             reloadConversation(id)
             guard { api?.markSeen(id) }

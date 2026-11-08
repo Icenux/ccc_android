@@ -114,6 +114,8 @@ class ConversationActions(
     val runs: () -> Unit,
     val agents: () -> Unit,
     val terminal: () -> Unit,
+    /** Answer Claude Code's question in the terminal with option n (null: Esc). */
+    val answerPrompt: (Int?) -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,7 +135,7 @@ fun ConversationScreen(
     var confirmPreset by remember { mutableStateOf<PromptPreset?>(null) }
     val archived = detail?.archived == true
     // Claude is busy (and not stopped on an approval): the screen shows it moving.
-    val working = detail?.state == ConversationStatus.RUNNING && detail.permissions.isEmpty()
+    val working = detail?.state == ConversationStatus.RUNNING && detail.permissions.isEmpty() && state.prompt == null
     val list = rememberLazyListState()
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     // reverseLayout: item 0 is the newest, at the bottom. New messages scroll into view only while the reader
@@ -160,7 +162,7 @@ fun ConversationScreen(
                 Column(Modifier.weight(1f)) {
                     Text(detail?.name.orEmpty(), style = MaterialTheme.typography.titleLarge, color = CccColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     detail?.let {
-                        val approval = it.permissions.isNotEmpty()
+                        val approval = it.permissions.isNotEmpty() || state.prompt != null
                         val color = statusColor(it.state, approval)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             GlowDot(color, size = 7.dp, pulse = pulseOf(it.state, approval))
@@ -219,6 +221,9 @@ fun ConversationScreen(
                         onDecide = { actions.decide(permission, it) },
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
+                }
+                state.prompt?.let { prompt ->
+                    PromptCard(prompt, actions.answerPrompt, actions.terminal, Modifier.padding(bottom = 8.dp))
                 }
                 Mentions(state.mentions) { path ->
                     val at = mentionAt(draft.text)?.first ?: return@Mentions
@@ -573,5 +578,33 @@ private fun WorkingIndicator(modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.width(4.dp))
         Text(stringResource(R.string.claude_working), style = MaterialTheme.typography.labelMedium, color = CccColors.Cyan)
+    }
+}
+
+
+/** Claude Code asks something in its terminal: the question, a button per answer, Esc, and the terminal itself. */
+@Composable
+private fun PromptCard(prompt: io.github.icenux.ccc.data.TerminalPrompt, onAnswer: (Int?) -> Unit, onTerminal: () -> Unit, modifier: Modifier) {
+    HudPanel(modifier, accent = CccColors.Amber, brackets = false, glow = true, contentPadding = PaddingValues(14.dp)) {
+        Text(stringResource(R.string.prompt_title), style = MaterialTheme.typography.titleSmall, color = CccColors.Amber)
+        if (prompt.question.isNotBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(prompt.question, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text)
+        }
+        Spacer(Modifier.height(10.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            prompt.options.forEach { option ->
+                CccButton(
+                    onClick = { onAnswer(option.number) },
+                    modifier = Modifier.fillMaxWidth(),
+                    kind = if (option.selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY,
+                ) { Text("${option.number}  ${option.label}", maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)) }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            CccButton(onClick = onTerminal, kind = ButtonKind.GHOST) { Text(stringResource(R.string.terminal)) }
+            CccButton(onClick = { onAnswer(null) }, kind = ButtonKind.GHOST, color = CccColors.Red) { Text(stringResource(R.string.prompt_cancel)) }
+        }
     }
 }
