@@ -70,9 +70,15 @@ data class Conversation(
     val group: Group? = null,
     val git: GitState? = null,
     val goal: GoalBrief? = null,
+    /** An interactive Claude Code is working in its terminal (older ccc: absent = false). */
+    @SerialName("live_busy") val liveBusy: Boolean = false,
 ) {
-    val state: ConversationStatus get() = ConversationStatus.of(status)
+    val state: ConversationStatus get() = effectiveState(status, liveBusy)
 }
+
+/** The queue's state, but an idle conversation whose terminal Claude is working counts as running (as in ccc's TUI). */
+fun effectiveState(status: String, liveBusy: Boolean): ConversationStatus =
+    ConversationStatus.of(status).let { if (liveBusy && it == ConversationStatus.IDLE) ConversationStatus.RUNNING else it }
 
 /** Its latest goal loop for the list: while it runs and for a day after it ended (`goal` is null otherwise). */
 @Serializable
@@ -149,8 +155,9 @@ data class ConversationDetail(
     @SerialName("remote_control_url") val remoteControlUrl: String? = null,
     val queued: List<Queued> = emptyList(),
     val permissions: List<Permission> = emptyList(),
+    @SerialName("live_busy") val liveBusy: Boolean = false,
 ) {
-    val state: ConversationStatus get() = ConversationStatus.of(status)
+    val state: ConversationStatus get() = effectiveState(status, liveBusy)
 }
 
 /** One transcript event: kind is "human", "assistant_text", "tool_call" or "tool_result". */

@@ -56,6 +56,18 @@ class CccApiTest {
     private fun api(token: String = "secret") = CccApi("http://127.0.0.1:${server.address.port}", token)
 
     @Test
+    fun `reads live_busy and takes it as false from an older ccc`() = runBlocking {
+        answers["conversations"] = 200 to """[{"id": 1, "name": "shop", "path": "/p", "status": "idle",
+            "delivery_mode": "interactive", "live_busy": true},
+            {"id": 2, "name": "docs", "path": "/d", "status": "idle", "delivery_mode": "interactive"}]"""
+
+        val (shop, docs) = api().conversations()
+
+        assertEquals(true, shop.liveBusy)
+        assertEquals(false, docs.liveBusy)
+    }
+
+    @Test
     fun `reads the git state of a conversation and ignores the context an older ccc still sends`() = runBlocking {
         answers["conversations"] = 200 to """[{"id": 1, "name": "shop", "path": "/p", "status": "idle",
             "delivery_mode": "interactive", "context": {"tokens": 186000, "percent": 93, "level": "danger"},
