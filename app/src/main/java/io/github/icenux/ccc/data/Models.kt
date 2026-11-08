@@ -2,6 +2,7 @@ package io.github.icenux.ccc.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.math.roundToInt
 import kotlinx.serialization.json.JsonObject
 
 /** What ccc's API (src/ccc/api.py) returns; field names as in its JSON. */
@@ -72,8 +73,29 @@ data class Conversation(
     val goal: GoalBrief? = null,
     /** An interactive Claude Code is working in its terminal (older ccc: absent = false). */
     @SerialName("live_busy") val liveBusy: Boolean = false,
+    /** How full its context window is, from Claude Code's status line (older ccc / not reported: null). */
+    val context: ContextFill? = null,
 ) {
     val state: ConversationStatus get() = effectiveState(status, liveBusy)
+}
+
+/** How full the context window is (percent 0–100), as Claude Code's status line reported it. */
+@Serializable
+data class ContextFill(
+    val percent: Double,
+    val tokens: Int? = null,
+    val window: Int? = null,
+) {
+    /** 62 % */
+    val text: String get() = "${percent.roundToInt()} %"
+
+    /** 124k / 200k, or "" when the status line gave no sizes. */
+    val sizes: String get() = if (tokens != null && window != null) "${compact(tokens)} / ${compact(window)}" else ""
+
+    /** "", "warn" (over 80 %) or "danger" (over 90 %), like the limits. */
+    val level: String get() = when { percent > 90 -> "danger"; percent > 80 -> "warn"; else -> "" }
+
+    private fun compact(n: Int) = if (n >= 1000) "${(n + 500) / 1000}k" else n.toString()
 }
 
 /** The queue's state, but an idle conversation whose terminal Claude is working counts as running (as in ccc's TUI). */
@@ -156,6 +178,7 @@ data class ConversationDetail(
     val queued: List<Queued> = emptyList(),
     val permissions: List<Permission> = emptyList(),
     @SerialName("live_busy") val liveBusy: Boolean = false,
+    val context: ContextFill? = null,
 ) {
     val state: ConversationStatus get() = effectiveState(status, liveBusy)
 }

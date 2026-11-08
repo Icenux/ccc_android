@@ -106,6 +106,10 @@ fun ConversationDetailScreen(
                         Divider()
                         DetailStat(runs?.runs?.size?.toString() ?: "–", stringResource(R.string.detail_runs), Modifier.weight(1f))
                         Divider()
+                        conversation.context?.let { context ->
+                            DetailStat(context.text, stringResource(R.string.detail_context), Modifier.weight(1f), contextColor(context))
+                            Divider()
+                        }
                         DetailStat(
                             git?.let { "+${it.added} −${it.removed}" } ?: "–",
                             stringResource(R.string.detail_changes), Modifier.weight(1f),
@@ -188,9 +192,9 @@ private fun Divider() {
 }
 
 @Composable
-private fun DetailStat(value: String, label: String, modifier: Modifier) {
+private fun DetailStat(value: String, label: String, modifier: Modifier, color: androidx.compose.ui.graphics.Color = CccColors.Text) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium, color = CccColors.Text, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(value, style = MaterialTheme.typography.titleMedium, color = color, fontWeight = FontWeight.Bold, maxLines = 1)
         Text(label, style = MaterialTheme.typography.labelSmall, color = CccColors.Faint, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
