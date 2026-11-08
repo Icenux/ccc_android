@@ -296,6 +296,7 @@
     <string name="subagent_model_session">model relace</string>
     <string name="subagent_all_tools">všechny nástroje</string>
     <string name="subagent_skipped">Claude Code tento soubor přeskočí: %1$s</string>
+    <string name="subagent_not_addressable">Jméno má znaky, které appka neposílá; tohoto agenta změň v počítači.</string>
     <string name="subagent_overridden">Agent stejného jména blíž projektu má přednost; tento se nepoužije.</string>
     <string name="subagent_delete_title">Smazat agenta</string>
     <string name="subagent_delete_text">Odstranit agenta „%1$s“? Claude Code ho přestane nacházet; soubor se přesune do vlastní složky ccc v počítači, nesmaže se nadobro.</string>

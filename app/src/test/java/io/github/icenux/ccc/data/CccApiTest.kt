@@ -371,4 +371,34 @@ class CccApiTest {
             assertTrue(e.message!!.contains("needs admin"))
         }
     }
+
+    @Test
+    fun `an agent name from a file never reaches a path as it is`() = runBlocking {
+        answers["agents/project/reviewer"] = 200 to """{"name": "reviewer", "scope": "project", "prompt": "p", "version": "1-1"}"""
+        val evil = listOf("../conversations/5", "..", ".", "a/b", "a%2Fb", "a b", "", "-x", "x".repeat(65), "..%2F..")
+        for (name in evil) {
+            for (call in listOf<suspend () -> Any>(
+                { api().subagent("project", name, "/p") },
+                { api().deleteSubagent("project", name, "/p") },
+                { api().editSubagent(Subagent(name, "d", "project", null, "", prompt = "p", version = "1-1"), "/p") },
+            )) {
+                try {
+                    call()
+                    fail("expected a refusal for '$name'")
+                } catch (e: ApiException) {
+                    assertEquals(400, e.code)
+                }
+            }
+        }
+        try {
+            api().subagent("../../x", "reviewer", "/p")
+            fail("expected a refusal for the scope")
+        } catch (e: ApiException) {
+            assertEquals(400, e.code)
+        }
+        assertTrue("nothing was sent: $seen", seen.isEmpty())
+        assertEquals("reviewer", api().subagent("project", "reviewer", "/p").name)  // a plain name still works
+        assertEquals("/api/v1/agents/project/reviewer?path=%2Fp", seen.single().uri)
+        assertTrue(Subagent.addressable("code-reviewer") && Subagent.addressable("a.b_c-1") && !Subagent.addressable("a/b"))
+    }
 }

@@ -298,6 +298,7 @@
     <string name="subagent_model_session">the session\'s model</string>
     <string name="subagent_all_tools">all tools</string>
     <string name="subagent_skipped">Claude Code skips this file: %1$s</string>
+    <string name="subagent_not_addressable">The name has characters the app does not send; change this agent on the computer.</string>
     <string name="subagent_overridden">An agent of the same name closer to the project wins; this one is not used.</string>
     <string name="subagent_delete_title">Delete agent</string>
     <string name="subagent_delete_text">Remove the agent “%1$s”? Claude Code stops finding it; the file moves to ccc\'s own folder on the computer, it is not deleted for good.</string>

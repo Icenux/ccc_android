@@ -236,9 +236,24 @@ class CccApi(
     /** The agents of [path]'s project and the user's; an empty [path] gives only the user's. */
     suspend fun subagents(path: String): List<Subagent> = get("agents", if (path.isEmpty()) emptyMap() else mapOf("path" to path))
 
+    /**
+     * The request for one agent. Its name is whatever the file says (a repository can hold an agent called
+     * `../conversations/5`), so it never becomes part of a path as it is: scope and name are checked and each is
+     * a path segment of its own, encoded.
+     */
+    private fun agentRequest(scope: String, name: String, path: String): Request.Builder {
+        if (scope != Subagent.SCOPE_PROJECT && scope != Subagent.SCOPE_USER || !Subagent.addressable(name)) {
+            throw ApiException(400, "The app cannot address the agent \"${name.take(40)}\": change it on the computer.")
+        }
+        val url = base.newBuilder().addPathSegment("agents").addPathSegment(scope).addPathSegment(name).apply {
+            if (path.isNotEmpty()) addQueryParameter("path", path)
+        }.build()
+        return Request.Builder().url(url).header("Authorization", "Bearer $token").header("Accept-Language", phoneLanguage())
+    }
+
     /** One agent with its prompt and the `version` a change has to send back. */
     suspend fun subagent(scope: String, name: String, path: String): Subagent =
-        get("agents/$scope/$name", if (path.isEmpty()) emptyMap() else mapOf("path" to path))
+        call(agentRequest(scope, name, path).get().build())
 
     private fun subagentFields(a: Subagent, path: String, vararg more: Pair<String, JsonElement>): String = body(
         "path" to JsonPrimitive(path), "description" to JsonPrimitive(a.description),
@@ -252,10 +267,10 @@ class CccApi(
 
     /** Changes description, tools, model and prompt of the agent; 409 when the file changed since [Subagent.version]. */
     suspend fun editSubagent(a: Subagent, path: String): Subagent =
-        post("agents/${a.scope}/${a.name}", subagentFields(a, path, "version" to JsonPrimitive(a.version)))
+        call(agentRequest(a.scope, a.name, "").post(subagentFields(a, path, "version" to JsonPrimitive(a.version)).toRequestBody(JSON)).build())
 
     suspend fun deleteSubagent(scope: String, name: String, path: String): SubagentRemoved =
-        call(request("agents/$scope/$name", if (path.isEmpty()) emptyMap() else mapOf("path" to path)).delete().build())
+        call(agentRequest(scope, name, path).delete().build())
 
     suspend fun subagentOptions(): SubagentOptions = get("agent-options")
 

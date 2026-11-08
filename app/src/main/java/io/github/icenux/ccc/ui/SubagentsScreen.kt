@@ -122,11 +122,15 @@ fun SubagentsScreen(
                     } else if (agent.overridden) {
                         Text(stringResource(R.string.subagent_overridden), color = CccColors.Waiting, style = MaterialTheme.typography.bodySmall)
                     }
+                    val addressable = Subagent.addressable(agent.name)
+                    if (!addressable) {
+                        Text(stringResource(R.string.subagent_not_addressable), color = CccColors.Muted, style = MaterialTheme.typography.bodySmall)
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.weight(1f))
-                        IconButton(onClick = { actions.edit(agent) }) { Icon(Icons.Filled.Edit, stringResource(R.string.edit)) }
-                        IconButton(onClick = { deleting = agent }) {
-                            Icon(Icons.Filled.Delete, stringResource(R.string.delete), tint = CccColors.Error)
+                        IconButton(onClick = { actions.edit(agent) }, enabled = addressable) { Icon(Icons.Filled.Edit, stringResource(R.string.edit)) }
+                        IconButton(onClick = { deleting = agent }, enabled = addressable) {
+                            Icon(Icons.Filled.Delete, stringResource(R.string.delete), tint = if (addressable) CccColors.Error else CccColors.Muted)
                         }
                     }
                 }

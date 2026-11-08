@@ -258,6 +258,13 @@ data class Subagent(
     companion object {
         const val SCOPE_PROJECT = "project"
         const val SCOPE_USER = "user"
+        private val ADDRESSABLE = Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+
+        /**
+         * Whether the app may put [name] into a request. The name comes from the agent's file, so anything can be
+         * in it; only plain names (no slash, nothing that reads as a path) are used. Others are changed on the computer.
+         */
+        fun addressable(name: String): Boolean = ADDRESSABLE.matches(name)
     }
 }
 
