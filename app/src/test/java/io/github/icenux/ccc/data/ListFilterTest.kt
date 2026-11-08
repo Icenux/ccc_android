@@ -31,6 +31,16 @@ class ListFilterTest {
     }
 
     @Test
+    fun `a conversation whose terminal Claude works counts as running, but only when the queue is idle`() {
+        val busy = Conversation(1, "api", "/p/api", "idle", "interactive", liveBusy = true)
+        assertEquals(ConversationStatus.RUNNING, busy.state)
+        assertTrue(ListFilter.parse("!").matches(busy))
+        assertEquals(ConversationStatus.BLOCKED_ERROR, busy.copy(status = "blocked_error").state)
+        assertEquals(ConversationStatus.IDLE, busy.copy(liveBusy = false).state)
+        assertEquals(ConversationStatus.RUNNING, ConversationDetail(1, "api", "/p", "idle", "interactive", liveBusy = true).state)
+    }
+
+    @Test
     fun `picked states and typed words are kept apart - x is a word then`() {
         val filter = ListFilter.of(setOf('?'), "x Api")
         assertEquals(setOf('?'), filter.states)
