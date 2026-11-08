@@ -41,6 +41,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -116,9 +117,10 @@ fun pulseOf(status: io.github.icenux.ccc.data.ConversationStatus, needsApproval:
 @Composable
 fun GlowDot(color: Color, modifier: Modifier = Modifier, size: Dp = 8.dp, pulse: Pulse = Pulse.NONE) {
     val loops = effects().loops
-    val level = if (pulse != Pulse.NONE && loops) {
-        val transition = rememberInfiniteTransition(label = "dot")
-        transition.animateFloat(
+    val glow = effects().glow
+    // The level is read in the draw phase only: the dot is redrawn every frame, never recomposed.
+    val level: State<Float>? = if (pulse != Pulse.NONE && loops) {
+        rememberInfiniteTransition(label = "dot").animateFloat(
             initialValue = if (pulse == Pulse.BLINK) 1f else 0.35f,
             targetValue = if (pulse == Pulse.BLINK) 0.25f else 1f,
             animationSpec = infiniteRepeatable(
@@ -126,14 +128,20 @@ fun GlowDot(color: Color, modifier: Modifier = Modifier, size: Dp = 8.dp, pulse:
                 RepeatMode.Reverse,
             ),
             label = "dot-level",
-        ).value
-    } else 1f
+        )
+    } else null
     Box(
         modifier
             .size(size)
-            .glowBehind(color, radius = size * 2.2f, alpha = 0.55f * (if (pulse == Pulse.GLOW) level else 1f))
-            .alpha(if (pulse == Pulse.BLINK) level else 1f)
-            .background(color, CircleShape),
+            .drawBehind {
+                val l = level?.value ?: 1f
+                if (glow) {
+                    val r = size.toPx() * 2.2f
+                    val a = 0.55f * (if (pulse == Pulse.GLOW) l else 1f) * (if (pulse == Pulse.BLINK) l else 1f)
+                    drawCircle(Brush.radialGradient(listOf(color.copy(alpha = a), Color.Transparent), center = center, radius = r), radius = r, center = center)
+                }
+                drawCircle(color.copy(alpha = if (pulse == Pulse.BLINK) l else 1f))
+            },
     )
 }
 

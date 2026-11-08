@@ -407,4 +407,5 @@
     <string name="goal_open_chat">Otevřít chat</string>
     <string name="goal_conversation">Konverzace %1$s</string>
     <string name="claude_working">Claude pracuje</string>
+    <string name="jump_to_newest">Na nejnovější</string>
 </resources>

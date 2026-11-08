@@ -616,17 +616,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun onChange(changed: List<Int>, removed: List<Int>) {
-        refresh()
+        // What is on screen first: the open conversation's new messages must not wait for the seven
+        // requests of the list's refresh (which now runs beside it).
+        val open = _conversation.value?.id
+        if (open != null && open in removed) {
+            _screens.update { stack -> stack.filterNot { it is Screen.Conversation && it.id == open } }
+            _conversation.value = null
+        } else if (open != null && open in changed) {
+            reloadConversation(open)
+        }
+        viewModelScope.launch { refresh() }
         _tasks.value?.id?.takeIf { it in changed }?.let { reloadTasks(it) }
         _runs.value?.id?.takeIf { it in changed }?.let { reloadRuns(it) }
         more.agents.value?.id?.takeIf { it in changed }?.let { more.reloadAgents(it) }
-        val open = _conversation.value?.id ?: return
-        if (open in removed) {
-            _screens.update { stack -> stack.filterNot { it is Screen.Conversation && it.id == open } }
-            _conversation.value = null
-        } else if (open in changed) {
-            reloadConversation(open)
-        }
     }
 
     // --- the list ----------------------------------------------------------------------

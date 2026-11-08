@@ -1,5 +1,11 @@
 package io.github.icenux.ccc.ui
 
+import androidx.compose.runtime.State
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import kotlinx.coroutines.launch
+
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.Spacer
@@ -129,10 +135,18 @@ fun ConversationScreen(
     // Claude is busy (and not stopped on an approval): the screen shows it moving.
     val working = detail?.state == ConversationStatus.RUNNING && detail.permissions.isEmpty()
     val list = rememberLazyListState()
-    // reverseLayout: item 0 is the newest, at the bottom; keep it in view when one arrives.
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // reverseLayout: item 0 is the newest, at the bottom. New messages scroll into view only while the reader
+    // is at the bottom; whoever scrolled up to read is left where they are. "At the bottom" is noted when a
+    // scroll stops (a new item being inserted is not the reader scrolling).
+    var atBottom by remember { mutableStateOf(true) }
+    LaunchedEffect(list) {
+        snapshotFlow { list.isScrollInProgress }.collect { moving -> if (!moving) atBottom = !list.canScrollBackward }
+    }
     val newest = state.messages.lastOrNull()?.index
-    LaunchedEffect(newest) {
-        if (list.firstVisibleItemIndex <= 1) list.animateScrollToItem(0)
+    val queuedCount = detail?.queued?.size ?: 0
+    LaunchedEffect(newest, queuedCount, working) {
+        if (atBottom) list.animateScrollToItem(0)
     }
     Scaffold(
         topBar = {
@@ -275,10 +289,11 @@ fun ConversationScreen(
             }
         },
     ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
         LazyColumn(
             state = list,
             reverseLayout = true,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
         ) {
@@ -306,6 +321,18 @@ fun ConversationScreen(
             detail?.let { header ->
                 item(key = "header") { Header(header) }
             }
+        }
+        // Scrolled up while news came in: a way back down.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !atBottom && !list.isScrollInProgress,
+            modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(),
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.scaleOut(),
+        ) {
+            FrameIconButton({ scope.launch { list.animateScrollToItem(0) } }) {
+                Icon(Icons.Filled.KeyboardArrowDown, stringResource(R.string.jump_to_newest), tint = CccColors.Cyan)
+            }
+        }
         }
     }
     confirmPreset?.let { preset ->
@@ -456,13 +483,13 @@ private fun Bubble(
 /** The caret at the end of the reply Claude is still writing. */
 @Composable
 private fun BlinkingCursor(color: androidx.compose.ui.graphics.Color) {
-    val on = if (effects().loops) {
+    val on: State<Float>? = if (effects().loops) {
         rememberInfiniteTransition(label = "cursor").animateFloat(
             1f, 0f, infiniteRepeatable(androidx.compose.animation.core.keyframes { durationMillis = 1000; 1f at 0; 1f at 480; 0f at 500; 0f at 980 }, RepeatMode.Restart),
             label = "cursor-alpha",
-        ).value
-    } else 1f
-    Box(Modifier.padding(top = 4.dp).size(width = 8.dp, height = 16.dp).alpha(on).background(color))
+        )
+    } else null
+    Box(Modifier.padding(top = 4.dp).size(width = 8.dp, height = 16.dp).graphicsLayer { alpha = on?.value ?: 1f }.background(color))
 }
 
 @Composable
@@ -508,20 +535,20 @@ private fun ToolLine(message: Message, modifier: Modifier) {
 /** A thin light that runs along the bottom edge of the header for as long as Claude works. */
 @Composable
 private fun ScanLine() {
-    val loops = effects().loops
-    val progress = if (loops) {
+    val progress: State<Float>? = if (effects().loops) {
         rememberInfiniteTransition(label = "scan").animateFloat(
             -0.3f, 1f, infiniteRepeatable(androidx.compose.animation.core.tween(1500, easing = androidx.compose.animation.core.LinearEasing)),
             label = "scan-progress",
-        ).value
-    } else 0.5f
+        )
+    } else null
     Box(
         Modifier.fillMaxWidth().height(2.dp).background(CccColors.Line).drawBehind {
             val w = size.width
+            val p = progress?.value ?: 0.5f
             drawRect(
                 androidx.compose.ui.graphics.Brush.horizontalGradient(
                     listOf(androidx.compose.ui.graphics.Color.Transparent, CccColors.Cyan, androidx.compose.ui.graphics.Color.Transparent),
-                    startX = w * progress, endX = w * (progress + 0.3f),
+                    startX = w * p, endX = w * (p + 0.3f),
                 ),
             )
         },
@@ -535,14 +562,14 @@ private fun WorkingIndicator(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "working")
     Row(modifier.padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         repeat(3) { i ->
-            val level = if (loops) {
+            val level: State<Float>? = if (loops) {
                 transition.animateFloat(
                     0.25f, 1f,
                     infiniteRepeatable(androidx.compose.animation.core.tween(600, delayMillis = i * 160, easing = FastOutSlowInEasing), RepeatMode.Reverse),
                     label = "working-dot-$i",
-                ).value
-            } else 1f
-            GlowDot(CccColors.Cyan, Modifier.alpha(level).padding(end = 6.dp), size = 7.dp)
+                )
+            } else null
+            GlowDot(CccColors.Cyan, Modifier.graphicsLayer { alpha = level?.value ?: 1f }.padding(end = 6.dp), size = 7.dp)
         }
         Spacer(Modifier.width(4.dp))
         Text(stringResource(R.string.claude_working), style = MaterialTheme.typography.labelMedium, color = CccColors.Cyan)
