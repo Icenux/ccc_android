@@ -6,9 +6,9 @@ conversations and check the usage limits — from your phone, privately over
 [Tailscale](https://tailscale.com). It needs a running ccc on your computer with its API turned on
 ([how](https://github.com/Icenux/ccc_TUI/blob/main/src/ccc/help/android-api.md)).
 
-| Conversations | A conversation |
-|---|---|
-| <img src="screenshots/en/conversations.png" width="260" alt="Conversations"> | <img src="screenshots/en/mention.png" width="260" alt="A conversation"> |
+| Dashboard | Side menu | Chat |
+|---|---|---|
+| <img src="screenshots/en/dashboard.png" width="260" alt="Dashboard"> | <img src="screenshots/en/menu.png" width="260" alt="Side menu"> | <img src="screenshots/en/mention.png" width="260" alt="A conversation"> |
 
 ## Install
 
@@ -36,3 +36,8 @@ GPG key of `SHA256SUMS.asc`: `D5AE 3DC0 F062 9B5B 97E8 1C45 6A16 DF02 11F8 C1A5`
 ## Build from source
 
 Needs JDK 17+ and the Android SDK (platform 36): `./gradlew assembleDebug`.
+
+## Fonts
+
+The app bundles Chakra Petch, JetBrains Mono and Inter, all under the SIL Open Font License 1.1
+(copyright their authors; see the font projects for the full text).

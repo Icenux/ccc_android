@@ -1,5 +1,27 @@
 package io.github.icenux.ccc.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import io.github.icenux.ccc.ui.theme.effects
+import androidx.compose.foundation.layout.height
+
+import io.github.icenux.ccc.ui.theme.CccFonts
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -16,22 +38,18 @@ import androidx.compose.ui.text.input.TextFieldValue
 import io.github.icenux.ccc.data.Permission
 import io.github.icenux.ccc.data.PromptPreset
 import io.github.icenux.ccc.data.mentionAt
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,13 +57,10 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -116,34 +131,30 @@ fun ConversationScreen(
     }
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(detail?.name.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        detail?.let {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                StatusDot(statusColor(it.state, it.permissions.isNotEmpty()))
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    statusLabel(it.state),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = CccColors.Muted,
-                                )
-                            }
+            Row(
+                Modifier.fillMaxWidth().statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                FrameIconButton(actions.back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back), tint = CccColors.Cyan) }
+                Column(Modifier.weight(1f)) {
+                    Text(detail?.name.orEmpty(), style = MaterialTheme.typography.titleLarge, color = CccColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    detail?.let {
+                        val approval = it.permissions.isNotEmpty()
+                        val color = statusColor(it.state, approval)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            GlowDot(color, size = 7.dp, pulse = pulseOf(it.state, approval))
+                            Spacer(Modifier.width(7.dp))
+                            Text(statusLabel(it.state).uppercase(), style = MaterialTheme.typography.labelMedium, color = color)
                         }
                     }
-                },
-                navigationIcon = {
-                    IconButton(onClick = actions.back) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
-                    }
-                },
-                actions = {
-                    if (detail != null && detail.state in RETRYABLE && !archived) {
-                        IconButton(onClick = actions.retry) { Icon(Icons.Filled.Refresh, stringResource(R.string.retry)) }
-                    }
-                    if (detail != null) {
-                        IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
+                }
+                if (detail != null && detail.state in RETRYABLE && !archived) {
+                    FrameIconButton(actions.retry) { Icon(Icons.Filled.Refresh, stringResource(R.string.retry), tint = CccColors.Cyan) }
+                }
+                if (detail != null) {
+                    Box {
+                        FrameIconButton({ menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more), tint = CccColors.Dim) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             if (detail.deliveryMode == "interactive" || detail.deliveryMode == "remote_control") {
                                 DropdownMenuItem(text = { Text(stringResource(R.string.terminal)) },
@@ -167,15 +178,14 @@ fun ConversationScreen(
                                 onClick = { menu = false; dialog = "delete" })
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CccColors.Background),
-            )
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             Column(Modifier.bottomBarInsets().padding(8.dp)) {
                 if (archived) {
-                    Button(onClick = { actions.archive(false) }, modifier = Modifier.fillMaxWidth()) {
+                    CccButton(onClick = { actions.archive(false) }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.restore))
                     }
                     return@Column
@@ -200,40 +210,57 @@ fun ConversationScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         presets.forEach { preset ->
-                            AssistChip(
-                                onClick = {
-                                    if (preset.sendNow) confirmPreset = preset else actions.usePreset(preset) { text ->
-                                        val joined = if (draft.text.isBlank()) text else draft.text.trimEnd() + " " + text
-                                        draft = TextFieldValue(joined, TextRange(joined.length))
+                            val shape = RoundedCornerShape(5.dp)
+                            Row(
+                                Modifier
+                                    .clip(shape)
+                                    .background(CccColors.Surface, shape)
+                                    .border(1.dp, CccColors.LineBright, shape)
+                                    .clickable {
+                                        if (preset.sendNow) confirmPreset = preset else actions.usePreset(preset) { text ->
+                                            val joined = if (draft.text.isBlank()) text else draft.text.trimEnd() + " " + text
+                                            draft = TextFieldValue(joined, TextRange(joined.length))
+                                        }
                                     }
-                                },
-                                label = { Text((if (preset.sendNow) "⏎ " else "✎ ") + preset.name) },
-                            )
+                                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(if (preset.sendNow) "↵" else "✎", color = CccColors.Cyan, style = MaterialTheme.typography.labelLarge)
+                                Spacer(Modifier.width(8.dp))
+                                Text(preset.name, color = CccColors.Text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                            }
                         }
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = draft,
                         onValueChange = {
                             draft = it
                             actions.mention(mentionAt(it.text.substring(0, it.selection.end))?.second)
                         },
-                        placeholder = { Text(stringResource(R.string.message_hint)) },
-                        modifier = Modifier.weight(1f).heightIn(max = 160.dp),
+                        placeholder = { Text(stringResource(R.string.message_hint), color = CccColors.Faint) },
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 160.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = CccColors.Line,
-                            focusedBorderColor = CccColors.Title,
+                            unfocusedBorderColor = CccColors.LineBright,
+                            focusedBorderColor = CccColors.Cyan,
+                            unfocusedContainerColor = CccColors.Surface,
+                            focusedContainerColor = CccColors.Surface,
                         ),
                     )
-                    Spacer(Modifier.width(4.dp))
-                    if (state.sending) {
-                        CircularProgressIndicator(Modifier.padding(12.dp).width(24.dp))
-                    } else {
-                        IconButton(
-                            onClick = { actions.send(draft.text) { draft = TextFieldValue("") } },
-                            enabled = draft.text.isNotBlank(),
-                        ) { Icon(Icons.AutoMirrored.Filled.Send, stringResource(R.string.send), tint = CccColors.Title) }
+                    val canSend = draft.text.isNotBlank() && !state.sending
+                    val sendShape = RoundedCornerShape(6.dp)
+                    Box(
+                        Modifier
+                            .size(56.dp)
+                            .then(if (canSend) Modifier.glowRect(CccColors.Cyan, corner = 6.dp, spread = 8.dp, alpha = 0.4f) else Modifier)
+                            .clip(sendShape)
+                            .background(if (canSend) CccColors.Cyan else CccColors.SurfaceHigh, sendShape)
+                            .clickable(enabled = canSend) { actions.send(draft.text) { draft = TextFieldValue("") } },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (state.sending) CircularProgressIndicator(Modifier.size(22.dp), color = CccColors.Cyan, strokeWidth = 2.dp)
+                        else Icon(Icons.AutoMirrored.Filled.Send, stringResource(R.string.send), tint = if (canSend) CccColors.Background else CccColors.Faint)
                     }
                 }
             }
@@ -247,9 +274,12 @@ fun ConversationScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
         ) {
             detail?.queued?.reversed()?.let { queued ->
-                items(queued, key = { "queued:${it.id}" }) { QueuedBubble(it.text) }
+                items(queued, key = { "queued:${it.id}" }) { QueuedBubble(it.text, Modifier.animateItem()) }
             }
-            items(state.messages.reversed(), key = { it.index }) { MessageItem(it) }
+            items(state.messages.reversed(), key = { it.index }) { message ->
+                val streaming = message.index == newest && message.kind == "assistant_text" && detail?.state == ConversationStatus.RUNNING
+                MessageItem(message, streaming, Modifier.animateItem())
+            }
             if (detail != null && state.messages.isEmpty() && detail.queued.isEmpty()) {
                 item(key = "empty") {
                     Text(stringResource(R.string.no_messages), color = CccColors.Muted, modifier = Modifier.padding(16.dp))
@@ -309,7 +339,7 @@ private fun Mentions(files: List<String>, onPick: (String) -> Unit) {
             Text(
                 "@$path",
                 Modifier.fillMaxWidth().clickable { onPick(path) }.padding(horizontal = 12.dp, vertical = 8.dp),
-                fontFamily = FontFamily.Monospace,
+                fontFamily = CccFonts.Mono,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -358,7 +388,7 @@ private val RETRYABLE = setOf(ConversationStatus.BLOCKED_ERROR, ConversationStat
 @Composable
 private fun Header(detail: io.github.icenux.ccc.data.ConversationDetail) {
     Column(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-        Text(detail.path, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted, fontFamily = FontFamily.Monospace)
+        Text(detail.path, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted, fontFamily = CccFonts.Mono)
         if (detail.flags.isNotEmpty()) {
             Text(detail.flags, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
         }
@@ -373,79 +403,91 @@ private fun Header(detail: io.github.icenux.ccc.data.ConversationDetail) {
 }
 
 @Composable
-private fun MessageItem(message: Message) {
+private fun MessageItem(message: Message, streaming: Boolean, modifier: Modifier) {
     when (message.kind) {
-        "human" -> Bubble(stringResource(R.string.you), message.text, shortTime(message.time), CccColors.Human, end = true)
-        "assistant_text" -> Bubble(stringResource(R.string.claude), message.text, shortTime(message.time), CccColors.Claude, markdown = true)
-        else -> ToolLine(message)
+        "human" -> Bubble(stringResource(R.string.you), message.text, shortTime(message.time), CccColors.Human, modifier, end = true)
+        "assistant_text" -> Bubble(stringResource(R.string.claude), message.text, shortTime(message.time), CccColors.Claude, modifier,
+            markdown = true, cursor = streaming)
+        else -> ToolLine(message, modifier)
     }
 }
 
 @Composable
 private fun Bubble(
-    who: String, text: String, time: String?, color: androidx.compose.ui.graphics.Color, end: Boolean = false,
-    markdown: Boolean = false,
+    who: String, text: String, time: String?, color: androidx.compose.ui.graphics.Color, modifier: Modifier, end: Boolean = false,
+    markdown: Boolean = false, cursor: Boolean = false,
 ) {
-    Box(Modifier.fillMaxWidth(), contentAlignment = if (end) Alignment.CenterEnd else Alignment.CenterStart) {
-        Card(
-            modifier = Modifier.fillMaxWidth(if (end) 0.88f else 1f),
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = CccColors.Surface),
-            border = BorderStroke(1.dp, color),
+    val shape = RoundedCornerShape(6.dp)
+    Box(modifier.fillMaxWidth(), contentAlignment = if (end) Alignment.CenterEnd else Alignment.CenterStart) {
+        Column(
+            Modifier
+                .fillMaxWidth(if (end) 0.88f else 1f)
+                .clip(shape)
+                .background(CccColors.Surface, shape)
+                .border(1.dp, color.copy(alpha = 0.9f), shape)
+                .padding(12.dp),
         ) {
-            Column(Modifier.padding(10.dp)) {
-                Row {
-                    Text(who, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = color)
-                    time?.let {
-                        Spacer(Modifier.width(8.dp))
-                        Text(it, style = MaterialTheme.typography.labelMedium, color = CccColors.Muted)
-                    }
-                }
-                SelectionContainer {
-                    if (markdown) MarkdownText(text) else Text(text, style = MaterialTheme.typography.bodyMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(who.uppercase(), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = color)
+                time?.let {
+                    Spacer(Modifier.width(8.dp))
+                    Text(it, style = MaterialTheme.typography.labelMedium, color = CccColors.Faint)
                 }
             }
+            Spacer(Modifier.height(4.dp))
+            SelectionContainer {
+                if (markdown) MarkdownText(text) else Text(text, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text)
+            }
+            if (cursor) BlinkingCursor(color)
         }
     }
 }
 
+/** The caret at the end of the reply Claude is still writing. */
 @Composable
-private fun QueuedBubble(text: String) {
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-        Card(
-            modifier = Modifier.fillMaxWidth(0.88f),
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = CccColors.Background),
-            border = BorderStroke(1.dp, CccColors.Line),
+private fun BlinkingCursor(color: androidx.compose.ui.graphics.Color) {
+    val on = if (effects().loops) {
+        rememberInfiniteTransition(label = "cursor").animateFloat(
+            1f, 0f, infiniteRepeatable(androidx.compose.animation.core.keyframes { durationMillis = 1000; 1f at 0; 1f at 480; 0f at 500; 0f at 980 }, RepeatMode.Restart),
+            label = "cursor-alpha",
+        ).value
+    } else 1f
+    Box(Modifier.padding(top = 4.dp).size(width = 8.dp, height = 16.dp).alpha(on).background(color))
+}
+
+@Composable
+private fun QueuedBubble(text: String, modifier: Modifier) {
+    val shape = RoundedCornerShape(6.dp)
+    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+        Column(
+            Modifier.fillMaxWidth(0.88f).clip(shape).background(CccColors.Background, shape).border(1.dp, CccColors.Line, shape).padding(12.dp),
         ) {
-            Column(Modifier.padding(10.dp)) {
-                Row {
-                    Text(stringResource(R.string.you), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.queued), style = MaterialTheme.typography.labelMedium, color = CccColors.Muted)
-                }
-                Text(text, style = MaterialTheme.typography.bodyMedium, color = CccColors.Muted)
+            Row {
+                Text(stringResource(R.string.you).uppercase(), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = CccColors.Dim)
+                Spacer(Modifier.width(8.dp))
+                Text("· " + stringResource(R.string.queued).uppercase(), style = MaterialTheme.typography.labelLarge, color = CccColors.Dim)
             }
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = CccColors.Dim)
         }
     }
 }
 
 /** A tool call or its result: one muted line, the whole of it on a tap. */
 @Composable
-private fun ToolLine(message: Message) {
+private fun ToolLine(message: Message, modifier: Modifier) {
     var open by rememberSaveable(message.index) { mutableStateOf(false) }
     val call = message.kind == "tool_call"
     val text = if (open) message.detail ?: message.text else message.text
     Row(
-        Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 4.dp),
+        modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        Text(if (call) "⚙" else "↳", color = CccColors.Muted, modifier = Modifier.width(20.dp))
+        Text(if (call) "⚙" else "↳", color = CccColors.Faint, modifier = Modifier.width(24.dp))
         Text(
             text,
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
-            color = CccColors.Muted,
+            fontFamily = CccFonts.Mono,
+            color = CccColors.Dim,
             maxLines = if (open) Int.MAX_VALUE else PREVIEW_LINES,
             overflow = TextOverflow.Ellipsis,
         )

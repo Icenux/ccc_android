@@ -1,5 +1,7 @@
 package io.github.icenux.ccc.ui
 
+import io.github.icenux.ccc.ui.theme.CccFonts
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -69,22 +71,9 @@ import io.github.icenux.ccc.data.Run
 import io.github.icenux.ccc.data.Task
 import io.github.icenux.ccc.ui.theme.CccColors
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun Bar(title: String, subtitle: String?, onBack: () -> Unit, actions: @Composable () -> Unit = {}) {
-    TopAppBar(
-        title = {
-            Column {
-                Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                subtitle?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = CccColors.Muted, maxLines = 1) }
-            }
-        },
-        navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
-        },
-        actions = { actions() },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = CccColors.Background),
-    )
+    HudHeader(title, subtitle, onBack) { actions() }
 }
 
 /** What the task queue screen can do. */
@@ -309,7 +298,7 @@ private fun RunCard(run: Run, onDiff: () -> Unit, onRevert: () -> Unit) {
                 run.commit?.let { commit ->
                     Text(
                         commit.take(7) + if (run.revertedBy != null) " ↺" else "",
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = CccFonts.Mono,
                         color = if (run.revertedBy != null) CccColors.Muted else CccColors.Title,
                         textDecoration = if (run.revertedBy != null) TextDecoration.LineThrough else null,
                     )
@@ -366,11 +355,10 @@ fun DiffScreen(
         },
         bottomBar = {
             if (state.comments.isNotEmpty()) {
-                Button(
+                CccButton(
                     onClick = onSend,
                     enabled = !state.sending,
                     modifier = Modifier.fillMaxWidth().bottomBarInsets().padding(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = CccColors.Claude, contentColor = Color.Black),
                 ) { Text(stringResource(R.string.comments_send, state.comments.size)) }
             }
         },
@@ -395,7 +383,7 @@ fun DiffScreen(
             title = { Text(listOfNotNull(line.path, line.newLine ?: line.oldLine).joinToString(":")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(line.text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall,
+                    Text(line.text, fontFamily = CccFonts.Mono, style = MaterialTheme.typography.bodySmall,
                         color = CccColors.Muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
                     OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3,
                         placeholder = { Text(stringResource(R.string.comment_hint)) }, modifier = Modifier.fillMaxWidth())
@@ -436,12 +424,12 @@ private fun DiffRow(line: DiffLine, comment: String?, onTap: () -> Unit) {
         Row(Modifier.padding(horizontal = 8.dp)) {
             Text(
                 (line.newLine ?: line.oldLine)?.toString().orEmpty(),
-                fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = CccColors.Line,
+                fontFamily = CccFonts.Mono, style = MaterialTheme.typography.bodySmall, color = CccColors.Line,
                 modifier = Modifier.width(36.dp),
             )
             Text(if (comment != null) "●" else " ", color = CccColors.Approval, modifier = Modifier.width(14.dp),
                 style = MaterialTheme.typography.bodySmall)
-            Text(line.text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = color,
+            Text(line.text, fontFamily = CccFonts.Mono, style = MaterialTheme.typography.bodySmall, color = color,
                 softWrap = false)
         }
         comment?.let {

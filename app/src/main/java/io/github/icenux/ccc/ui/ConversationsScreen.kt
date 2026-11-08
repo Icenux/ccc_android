@@ -1,11 +1,32 @@
 package io.github.icenux.ccc.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.compositeOver
+import io.github.icenux.ccc.data.GitState
+import io.github.icenux.ccc.ui.theme.CccFonts
+import io.github.icenux.ccc.ui.theme.effects
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.materialPath
@@ -45,7 +66,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -103,8 +123,12 @@ class ConversationsActions(
     val applyUpdate: () -> Unit = {},
     val restartCcc: () -> Unit = {},
     val updateApp: () -> Unit = {},
-    /** The queue (tasks) of a conversation: what Enter on the TUI Dashboard opens. */
+    /** A Dashboard row: the conversation's overview. */
     val openQueue: (Int) -> Unit = {},
+    /** A waiting task: its conversation's queue. */
+    val openTasks: (Int) -> Unit = {},
+    /** A new task for a conversation (id, text, when). */
+    val addTask: (Int, String, String) -> Unit = { _, _, _ -> },
 )
 
 private val MARKERS = listOf(ListFilter.WORKING, ListFilter.APPROVAL, ListFilter.ERROR, ListFilter.UNSEEN)
@@ -121,80 +145,113 @@ fun ConversationsScreen(
     appUpdate: AppUpdateState = AppUpdateState(),
 ) {
     var groupMenu by remember { mutableStateOf<String?>(null) }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("ccc", color = CccColors.Accent, fontWeight = FontWeight.Bold)
-                        DaemonLine(state, actions.restartCcc)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = actions.search) { Icon(Icons.Filled.Search, stringResource(R.string.search)) }
-                    IconButton(onClick = actions.approvals) {
-                        BadgedBox(badge = {
-                            if (state.permissions.isNotEmpty()) Badge { Text(state.permissions.size.toString()) }
-                        }) { Icon(Icons.Filled.Notifications, stringResource(R.string.approvals)) }
-                    }
-                    var menu by remember { mutableStateOf(false) }
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        listOf(
-                            R.string.routines to actions.routines,
-                            R.string.analytics to actions.analytics,
-                            R.string.ccc_settings to actions.settings,
-                        ).forEach { (label, go) ->
-                            DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = { menu = false; go() })
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CccColors.Background),
-            )
-        },
-        floatingActionButton = {
-            if (state.tab == HomeTab.DASHBOARD || state.tab == HomeTab.CONVERSATIONS) {
-                ExtendedFloatingActionButton(
-                    onClick = actions.new,
-                    icon = { Icon(Icons.Filled.Add, null) },
-                    text = { Text(stringResource(R.string.new_conversation)) },
-                    containerColor = CccColors.Claude,
-                    contentColor = Color.Black,
-                )
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            PrimaryScrollableTabRow(
-                selectedTabIndex = state.tab.ordinal,
-                containerColor = CccColors.Background,
-                contentColor = CccColors.Title,
-                edgePadding = 0.dp,
-            ) {
-                listOf(
-                    HomeTab.DASHBOARD to stringResource(R.string.dashboard),
-                    HomeTab.CONVERSATIONS to "${stringResource(R.string.conversations)} (${state.conversations.size})",
-                    HomeTab.ARCHIVE to "${stringResource(R.string.archive)} (${state.archived.size})",
-                    HomeTab.SESSIONS to stringResource(R.string.live_sessions),
-                ).forEach { (tab, title) ->
-                    Tab(selected = state.tab == tab, onClick = { actions.tab(tab) }, text = { Text(title, maxLines = 1) })
+    var newTask by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            when (state.tab) {
+                HomeTab.DASHBOARD -> DashboardHeader(state, actions)
+                HomeTab.CONVERSATIONS, HomeTab.ARCHIVE -> HudHeader(
+                    stringResource(if (state.tab == HomeTab.ARCHIVE) R.string.archive else R.string.conversations),
+                    stringResource(R.string.conversations_count, if (state.tab == HomeTab.ARCHIVE) state.archived.size else state.conversations.size),
+                ) {
+                    FrameIconButton(actions.search) { Icon(Icons.Filled.Search, stringResource(R.string.search), tint = CccColors.Cyan) }
+                    ApprovalsBell(state, actions)
                 }
+                HomeTab.TASKS -> QueueHeader(state)
+                HomeTab.SESSIONS -> HudHeader(stringResource(R.string.live_sessions), sessions?.let { stringResource(R.string.sessions_count, it.size) })
             }
+            OfflineBanner(state)
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = actions.refresh,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when (state.tab) {
-                    HomeTab.DASHBOARD -> Dashboard(state, newVersion, actions, appUpdate)
+                    HomeTab.DASHBOARD -> Dashboard(state, listDetails, newVersion, actions, appUpdate)
                     HomeTab.SESSIONS -> LiveSessionsList(sessions, actions.promptSession)
+                    HomeTab.TASKS -> QueueTab(state, actions)
                     else -> ConversationList(state, listDetails, newVersion, actions, appUpdate) { groupMenu = it }
                 }
             }
         }
+        if (state.tab != HomeTab.ARCHIVE && state.tab != HomeTab.SESSIONS) {
+            val tasks = state.tab == HomeTab.TASKS
+            CccButton(
+                onClick = { if (tasks) newTask = true else actions.new() },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 12.dp).height(50.dp),
+            ) {
+                Icon(Icons.Filled.Add, null, Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(if (tasks) R.string.queue_new_task else R.string.new_conversation), style = MaterialTheme.typography.titleSmall)
+            }
+        }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
     groupMenu?.let { name -> GroupDialog(name, actions, onClose = { groupMenu = null }) }
+    if (newTask) NewTaskDialog(state.conversations, onClose = { newTask = false }, onAdd = actions.addTask)
+}
+
+@Composable
+private fun ApprovalsBell(state: HomeState, actions: ConversationsActions) {
+    FrameIconButton(actions.approvals) {
+        BadgedBox(badge = {
+            if (state.permissions.isNotEmpty()) Badge(containerColor = CccColors.Red) { Text(state.permissions.size.toString()) }
+        }) { Icon(Icons.Filled.Notifications, stringResource(R.string.approvals), tint = CccColors.Dim) }
+    }
+}
+
+/** Under the header: not connected — retrying…, with dots that run. */
+@Composable
+private fun OfflineBanner(state: HomeState) {
+    if (state.live || !state.loaded) return
+    val loops = effects().loops
+    val step = if (loops) {
+        rememberInfiniteTransition(label = "dots").animateFloat(
+            0f, 4f, infiniteRepeatable(tween(1600, easing = LinearEasing)), label = "dots-step",
+        ).value.toInt()
+    } else 3
+    Row(
+        Modifier
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(CccColors.Amber.copy(alpha = 0.10f))
+            .border(1.dp, CccColors.Amber.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        GlowDot(CccColors.Amber, pulse = Pulse.BLINK)
+        Spacer(Modifier.width(10.dp))
+        Text(stringResource(R.string.offline), style = MaterialTheme.typography.labelMedium, color = CccColors.Amber)
+        Text(".".repeat(step.coerceIn(0, 3)), style = MaterialTheme.typography.labelMedium, color = CccColors.Amber)
+    }
+}
+
+/** The Dashboard's top: the daemon's state on the left, the bell with the approvals on the right. */
+@Composable
+private fun DashboardHeader(state: HomeState, actions: ConversationsActions) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Column(Modifier.weight(1f)) { DaemonLine(state, actions.restartCcc) }
+        FrameIconButton(actions.search) { Icon(Icons.Filled.Search, stringResource(R.string.search), tint = CccColors.Dim) }
+        ApprovalsBell(state, actions)
+    }
+}
+
+@Composable
+private fun QueueHeader(state: HomeState) {
+    val queue = state.queue.orEmpty()
+    HudHeader(
+        stringResource(R.string.tasks),
+        stringResource(R.string.queue_waiting, queue.size) +
+            queue.count { it.task.byRoutine }.takeIf { it > 0 }?.let { " · " + stringResource(R.string.queue_from_routines, it) }.orEmpty(),
+    )
 }
 
 @Composable
@@ -210,11 +267,12 @@ private fun ConversationList(
     val shown = (if (state.showArchive) state.archived else state.conversations).filter(filter::matches)
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (!state.showArchive) banners(state, newVersion, actions, appUpdate)
         item(key = "filter") { SearchField(state.filter, state.filterStates, actions.filter, actions.filterState) }
+        if (!state.loaded) items(3) { ShimmerBlock(height = 84.dp) }
         if (state.loaded && shown.isEmpty()) {
             item(key = "empty") {
                 Text(
@@ -231,30 +289,24 @@ private fun ConversationList(
             }
         }
         var group: String? = null
-        shown.forEach { conversation ->
+        shown.forEachIndexed { index, conversation ->
             val heading = conversation.group
             if (heading != null && heading.key != group) {
                 item(key = "group:${heading.key}") { GroupHeader(heading, onGroupMenu) }
             }
             group = heading?.key
-            item(key = conversation.id) { ConversationRow(conversation, listDetails) { actions.open(conversation.id) } }
+            item(key = conversation.id) {
+                ConversationCard(
+                    conversation, listDetails,
+                    Modifier.animateItem().staggeredEntry(index),
+                ) { actions.open(conversation.id) }
+            }
         }
     }
 }
 
-/** What may need you above the lists: the limits, who waits, a new ccc, a new app. */
+/** What may need you above the lists: who waits, a new ccc, a new app. (The usage limits are in the side menu.) */
 private fun LazyListScope.banners(state: HomeState, newVersion: AppRelease?, actions: ConversationsActions, appUpdate: AppUpdateState) {
-    state.usage?.let { usage ->
-        item(key = "usage") {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CccColors.Surface),
-                border = BorderStroke(1.dp, CccColors.Line),
-            ) { UsageCard(usage, Modifier.padding(12.dp)) }
-        }
-    }
-    if (state.waiting.isNotEmpty()) {
-        item(key = "waiting") { WaitingBanner(state, actions.nextWaiting) }
-    }
     state.status?.update?.takeIf { it.available }?.let { update ->
         item(key = "update") { UpdateBanner(update, actions.applyUpdate) }
     }
@@ -263,56 +315,47 @@ private fun LazyListScope.banners(state: HomeState, newVersion: AppRelease?, act
     }
 }
 
-/** The TUI's Dashboard: the overview line, then every conversation with its status, queue, tokens today, git and folder. */
-@OptIn(ExperimentalLayoutApi::class)
+/** The overview: who needs you, the counts, then every conversation with its state. */
 @Composable
-private fun Dashboard(state: HomeState, newVersion: AppRelease?, actions: ConversationsActions, appUpdate: AppUpdateState) {
+private fun Dashboard(state: HomeState, listDetails: Set<String>, newVersion: AppRelease?, actions: ConversationsActions, appUpdate: AppUpdateState) {
     val all = state.conversations
     val blocked = all.count { it.state == ConversationStatus.BLOCKED_ERROR }
     val running = all.count { it.state == ConversationStatus.RUNNING }
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         banners(state, newVersion, actions, appUpdate)
+        if (state.waiting.isNotEmpty()) {
+            item(key = "waiting") { WaitingBanner(state, actions.nextWaiting) }
+        }
         item(key = "overview") {
-            Card(
-                Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CccColors.Surface),
-                border = BorderStroke(1.dp, CccColors.Line),
-            ) {
-                FlowRow(
-                    Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Stat(all.size.toString(), stringResource(R.string.dashboard_conversations), MaterialTheme.colorScheme.onSurface)
-                    Stat(running.toString(), stringResource(R.string.dashboard_running),
-                        if (running > 0) CccColors.Running else CccColors.Muted)
-                    Stat(all.sumOf { it.pending }.toString(), stringResource(R.string.dashboard_pending), MaterialTheme.colorScheme.onSurface)
-                    Stat(blocked.toString(), stringResource(R.string.dashboard_blocked),
-                        if (blocked > 0) CccColors.Error else CccColors.Muted)
-                    Stat(state.waiting.size.toString(), stringResource(R.string.dashboard_waiting),
-                        if (state.waiting.isNotEmpty()) CccColors.Waiting else CccColors.Muted)
-                    Stat(tokenText(all.sumOf { it.tokensToday }), stringResource(R.string.dashboard_tokens), MaterialTheme.colorScheme.onSurface)
+            HudPanel(brackets = false, accent = CccColors.Line, contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    StatCell(all.size, stringResource(R.string.stat_chats), CccColors.Text)
+                    StatCell(running, stringResource(R.string.stat_running), if (running > 0) CccColors.Cyan else CccColors.Faint)
+                    StatCell(all.sumOf { it.pending }, stringResource(R.string.stat_queued), CccColors.Text)
+                    StatCell(blocked, stringResource(R.string.stat_blocked), if (blocked > 0) CccColors.Red else CccColors.Faint)
+                    StatCell(state.waiting.size, stringResource(R.string.stat_waiting), if (state.waiting.isNotEmpty()) CccColors.Amber else CccColors.Faint)
                 }
             }
         }
+        item(key = "heading") {
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.conversations), style = MaterialTheme.typography.titleLarge, color = CccColors.Text)
+                CccChip(all.size.toString(), color = CccColors.Dim)
+            }
+        }
+        if (!state.loaded) items(3) { ShimmerBlock(height = 84.dp) }
         if (state.loaded && all.isEmpty()) {
             item(key = "empty") {
                 Text(stringResource(R.string.conversations_empty), Modifier.fillMaxWidth().padding(32.dp), color = CccColors.Muted)
             }
         }
-        items(all, key = { "dash:${it.id}" }) { conversation -> DashboardRow(conversation) { actions.openQueue(conversation.id) } }
-    }
-}
-
-@Composable
-private fun Stat(value: String, label: String, color: Color) {
-    Column {
-        Text(value, style = MaterialTheme.typography.titleLarge, color = color, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = CccColors.Muted)
+        itemsIndexed(all, key = { _, c -> "dash:${c.id}" }) { index, conversation ->
+            ConversationCard(conversation, listDetails, Modifier.animateItem().staggeredEntry(index)) { actions.openQueue(conversation.id) }
+        }
     }
 }
 
@@ -324,68 +367,18 @@ internal fun tokenText(tokens: Long): String = when {
 }
 
 @Composable
-private fun DashboardRow(conversation: Conversation, onClick: () -> Unit) {
-    val state = conversation.state
-    val color = statusColor(state, conversation.needsApproval)
-    Card(
-        Modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = CccColors.Surface),
-        border = BorderStroke(1.dp, if (conversation.needsApproval) CccColors.Approval else CccColors.Line),
-    ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                StatusDot(color)
-                Spacer(Modifier.width(10.dp))
-                Text(conversation.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (conversation.needsApproval) stringResource(R.string.needs_approval) else statusLabel(state),
-                    style = MaterialTheme.typography.labelMedium, color = color,
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(R.string.pending_count, conversation.pending), style = MaterialTheme.typography.bodySmall,
-                    color = CccColors.Muted)
-                Text(stringResource(R.string.tokens_today_short, tokenText(conversation.tokensToday)),
-                    style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-            }
-            conversation.goal?.let { goal ->
-                Text(
-                    stringResource(R.string.goal_line, goal.icon, goal.round, goal.maxRounds,
-                        if (goal.running) goal.phaseLabel else goal.statusLabel),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when (goal.status) {
-                        "running" -> CccColors.Waiting
-                        "passed" -> CccColors.Running
-                        "stopped" -> CccColors.Muted
-                        else -> CccColors.Error
-                    },
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-            }
-            conversation.git?.text?.takeIf { it.isNotEmpty() }?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = CccColors.Title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Text(shortPath(conversation.path), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
 private fun DaemonLine(state: HomeState, onRestart: () -> Unit) {
     val (text, color) = when {
-        !state.live && state.loaded -> stringResource(R.string.offline) to CccColors.Waiting
-        state.status?.daemonRunning == true -> stringResource(R.string.daemon_running) to CccColors.Running
-        state.status != null -> stringResource(R.string.daemon_stopped) to CccColors.Error
-        else -> "" to CccColors.Muted
+        !state.live && state.loaded -> stringResource(R.string.offline) to CccColors.Amber
+        state.status?.daemonRunning == true -> stringResource(R.string.daemon_running) to CccColors.Cyan
+        state.status != null -> stringResource(R.string.daemon_stopped) to CccColors.Red
+        else -> "" to CccColors.Dim
     }
     if (text.isNotEmpty()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            StatusDot(color)
-            Spacer(Modifier.width(6.dp))
-            Text(text, style = MaterialTheme.typography.labelMedium, color = color)
+            GlowDot(color, size = 9.dp, pulse = if (color == CccColors.Cyan) Pulse.GLOW else Pulse.NONE)
+            Spacer(Modifier.width(10.dp))
+            Text(text, style = MaterialTheme.typography.titleSmall.copy(fontFamily = CccFonts.Mono), color = CccColors.Text)
         }
     }
     if (state.status?.restartNeeded == true) RestartLine(onRestart)
@@ -488,24 +481,35 @@ private fun NewAppBanner(release: AppRelease, update: AppUpdateState, onUpdate: 
 private fun WaitingBanner(state: HomeState, onNext: () -> Unit) {
     val first = state.waiting.first()
     val color = when (first.kind) {
-        "approval" -> CccColors.Approval
-        "error" -> CccColors.Error
-        "limit" -> CccColors.Waiting
-        else -> CccColors.Title
+        "approval" -> CccColors.Cyan
+        "error" -> CccColors.Red
+        "limit" -> CccColors.Amber
+        else -> CccColors.Cyan
     }
-    Card(
-        Modifier.fillMaxWidth().clickable(onClick = onNext),
-        colors = CardDefaults.cardColors(containerColor = CccColors.Surface),
-        border = BorderStroke(1.dp, color),
-    ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    val branch = state.conversations.firstOrNull { it.id == first.conversationId }?.git?.branch
+    // The light runs around the frame only while something is there to approve.
+    HudPanel(accent = CccColors.Cyan, glow = true, orbit = state.waiting.any { it.kind == "approval" }, onClick = onNext) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.needs_you, state.waiting.size), style = MaterialTheme.typography.labelMedium,
-                    color = CccColors.Muted)
-                Text("${first.name} — ${first.label}", color = color, fontWeight = FontWeight.Bold, maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
+                Text(
+                    stringResource(R.string.needs_you, state.waiting.size).uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = CccColors.Cyan,
+                    letterSpacing = androidx.compose.ui.unit.TextUnit(1.6f, androidx.compose.ui.unit.TextUnitType.Sp),
+                )
+                Spacer(Modifier.height(4.dp))
+                Text("${first.name} — ${first.label}", style = MaterialTheme.typography.titleMedium, color = if (color == CccColors.Cyan) CccColors.Text else color,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    listOfNotNull(branch, stringResource(R.string.needs_you_tap)).joinToString(" · "),
+                    style = MaterialTheme.typography.labelMedium, color = CccColors.Faint, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
             }
-            TextButton(onClick = onNext) { Text(stringResource(R.string.open_next)) }
+            Spacer(Modifier.width(12.dp))
+            Box(
+                Modifier.size(54.dp).border(1.dp, CccColors.Cyan, RoundedCornerShape(6.dp)),
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, stringResource(R.string.open_next), tint = CccColors.Cyan) }
         }
     }
 }
@@ -572,8 +576,8 @@ private fun GroupHeader(group: Group, onMenu: (String) -> Unit) {
             .padding(top = 12.dp)
             .combinedClickable(onClick = { own?.let(onMenu) }, onLongClick = { own?.let(onMenu) }),
     ) {
-        Text(group.title, style = MaterialTheme.typography.titleSmall, color = CccColors.Title, fontWeight = FontWeight.Bold)
-        HorizontalDivider(Modifier.padding(top = 4.dp), color = CccColors.Line)
+        Caption(group.title, color = CccColors.Cyan)
+        HorizontalDivider(Modifier.padding(top = 6.dp), color = CccColors.Line)
     }
 }
 
@@ -614,64 +618,105 @@ private fun GroupDialog(name: String, actions: ConversationsActions, onClose: ()
     )
 }
 
+/** Two letters for the avatar: SH for "shop-api", DP for "data pipeline". */
+internal fun initials(name: String): String {
+    val words = name.split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() }
+    val letters = when {
+        words.size >= 2 -> "${words[0].first()}${words[1].first()}"
+        words.size == 1 -> words[0].take(2)
+        else -> "·"
+    }
+    return letters.uppercase()
+}
+
+/**
+ * A conversation: a stripe in the colour of its state, an avatar with initials, the name and branch, the state
+ * (running pulses, needs approval blinks slowly, an error stands still), then what [details] ask for.
+ */
 @Composable
-private fun ConversationRow(conversation: Conversation, listDetails: Set<String>, onClick: () -> Unit) {
+internal fun ConversationCard(conversation: Conversation, details: Set<String>, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val state = conversation.state
-    Card(
-        Modifier.fillMaxWidth().clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = CccColors.Surface),
-        border = BorderStroke(1.dp, if (conversation.needsApproval) CccColors.Approval else CccColors.Line),
+    val color = statusColor(state, conversation.needsApproval)
+    val approval = conversation.needsApproval
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .then(if (approval) Modifier.glowRect(CccColors.Amber, corner = 8.dp, spread = 8.dp, alpha = 0.3f) else Modifier)
+            .clip(shape)
+            .background(if (approval) CccColors.Amber.copy(alpha = 0.07f).compositeOver(CccColors.Surface) else CccColors.Surface, shape)
+            .border(1.dp, if (approval) CccColors.Amber.copy(alpha = 0.8f) else CccColors.Line, shape)
+            .clickable(onClick = onClick),
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            StatusDot(statusColor(state, conversation.needsApproval))
+        Box(Modifier.width(3.dp).fillMaxHeight().background(color))
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(46.dp).background(CccColors.CyanSoft, RoundedCornerShape(6.dp)).border(1.dp, CccColors.LineBright, RoundedCornerShape(6.dp)),
+                contentAlignment = Alignment.Center,
+            ) { Text(initials(conversation.name), style = MaterialTheme.typography.titleMedium, color = CccColors.Cyan, fontWeight = FontWeight.Bold) }
             Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         conversation.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (conversation.unseen) FontWeight.Bold else FontWeight.Normal,
+                        color = CccColors.Text,
+                        fontWeight = if (conversation.unseen) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (conversation.unseen) {
-                        Spacer(Modifier.width(8.dp))
-                        StatusDot(CccColors.Title)
-                    }
+                    conversation.git?.branch?.let { CccChip(it, color = CccColors.Dim, modifier = Modifier.weight(1f, fill = false)) }
+                    if (conversation.unseen) GlowDot(CccColors.Cyan, size = 7.dp)
                 }
-                val details = buildList {
-                    add(if (conversation.needsApproval) stringResource(R.string.needs_approval) else statusLabel(state))
-                    if (ListDetail.PENDING in listDetails && conversation.pending > 0) {
-                        add(stringResource(R.string.pending_count, conversation.pending))
-                    }
-                    if (conversation.unseen) add(stringResource(R.string.new_reply))
-                }
-                val highlighted = state != ConversationStatus.IDLE || conversation.needsApproval
-                Text(
-                    details.joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (highlighted) statusColor(state, conversation.needsApproval) else CccColors.Muted,
-                )
-                val git = conversation.git?.text?.takeIf { ListDetail.GIT in listDetails && it.isNotEmpty() }
-                if (git != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    GlowDot(color, size = 7.dp, pulse = pulseOf(state, approval))
+                    Spacer(Modifier.width(7.dp))
                     Text(
-                        git,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = CccColors.Title,
+                        (if (approval) stringResource(R.string.needs_approval) else statusLabel(state)).uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = color,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    val rest = buildList {
+                        if (ListDetail.PENDING in details && conversation.pending > 0) add(stringResource(R.string.pending_count, conversation.pending))
+                        if (conversation.unseen) add(stringResource(R.string.new_reply))
+                    }
+                    if (rest.isNotEmpty()) {
+                        Text("  ·  " + rest.joinToString(" · "), style = MaterialTheme.typography.labelMedium, color = CccColors.Faint,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                conversation.goal?.let { goal ->
+                    Text(
+                        stringResource(R.string.goal_line, goal.icon, goal.round, goal.maxRounds, if (goal.running) goal.phaseLabel else goal.statusLabel),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = when (goal.status) {
+                            "running" -> CccColors.Cyan
+                            "passed" -> CccColors.Claude
+                            "stopped" -> CccColors.Faint
+                            else -> CccColors.Red
+                        },
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (ListDetail.PATH in listDetails) {
-                    Text(shortPath(conversation.path), style = MaterialTheme.typography.bodySmall,
-                        color = CccColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val git = conversation.git?.let { g -> GitState(null, g.added, g.removed, g.ahead, g.behind).text }
+                    ?.takeIf { ListDetail.GIT in details && it.isNotEmpty() }
+                if (git != null) {
+                    Text(git, style = MaterialTheme.typography.labelMedium, color = CccColors.Dim, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                conversation.lastError?.takeIf { state == ConversationStatus.BLOCKED_ERROR }?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = CccColors.Error, maxLines = 2,
+                if (ListDetail.PATH in details) {
+                    Text(shortPath(conversation.path), style = MaterialTheme.typography.labelMedium, color = CccColors.Faint, maxLines = 1,
                         overflow = TextOverflow.Ellipsis)
                 }
+                conversation.lastError?.takeIf { state == ConversationStatus.BLOCKED_ERROR }?.let {
+                    Text(it, style = MaterialTheme.typography.labelMedium, color = CccColors.Red, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
             }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = CccColors.Faint)
         }
     }
 }

@@ -42,12 +42,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.awaitAll
 
 /** The app's screens; the last one of the stack is shown. */
 sealed interface Screen {
     data object Setup : Screen
     data object Conversations : Screen
     data class Conversation(val id: Int) : Screen
+    /** A conversation's overview: numbers, what waits for you, runs and commits (the Dashboard's rows open it). */
+    data class ConversationDetail(val id: Int) : Screen
     data object Approvals : Screen
     data object NewConversation : Screen
     data object Search : Screen
@@ -73,8 +76,18 @@ data class AppUpdateState(val phase: Phase = Phase.IDLE, val progress: Float = 0
 /** How often the app looks for a new release when it comes to the foreground. */
 private const val RELEASE_CHECK_MS = 6 * 60 * 60 * 1000L
 
-/** The tabs of the main screen. */
-enum class HomeTab { DASHBOARD, CONVERSATIONS, ARCHIVE, SESSIONS }
+/** The tabs of the main screen: the bottom bar's Dashboard / Chats / Tasks, and Archive and Live sessions from the side menu. */
+enum class HomeTab { DASHBOARD, CONVERSATIONS, TASKS, ARCHIVE, SESSIONS }
+
+/** One waiting task of the all-conversations queue. */
+data class QueueEntry(
+    val conversationId: Int,
+    val conversation: String,
+    val task: io.github.icenux.ccc.data.Task,
+    /** 0-based place in its own conversation's queue. */
+    val position: Int,
+    val paused: Boolean,
+)
 
 private data class Seven<A, B, C, D, E, F, G>(
     val a: A, val b: B, val c: C, val d: D, val e: E, val f: F, val g: G,
@@ -96,6 +109,8 @@ data class HomeState(
     val waiting: List<Waiting> = emptyList(),
     val ownGroups: List<String> = emptyList(),
     val promptPresets: List<PromptPreset> = emptyList(),
+    /** Every conversation's waiting tasks (null until loaded): the Tasks tab. */
+    val queue: List<QueueEntry>? = null,
     val loaded: Boolean = false,
     val refreshing: Boolean = false,
     /** The events stream is open: what the app shows is current. */
@@ -327,6 +342,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private var events: Job? = null
     private var foreground = false
+    private val _effects = MutableStateFlow(settings.effects)
+    /** Glow and endless animations (the side menu's switch). */
+    val effects: StateFlow<Boolean> = _effects.asStateFlow()
+
+    fun setEffects(value: Boolean) {
+        settings.effects = value
+        _effects.value = value
+    }
+
     /** Agents, routines, live sessions, analytics, ccc's settings. */
     val more = MoreModel(viewModelScope, { block -> guard { api?.let { block(it) } } }, { _message.value = it })
 
@@ -348,6 +372,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _runs.value = RunsState(screen.id)
                 action { reloadRuns(screen.id) }
             }
+            is Screen.ConversationDetail -> {
+                _runs.value = RunsState(screen.id)
+                action { reloadRuns(screen.id) }
+            }
             is Screen.Agents -> more.openAgents(screen.id)
             Screen.Routines -> more.loadRoutines()
             Screen.Analytics -> more.loadAnalytics()
@@ -359,6 +387,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             else -> Unit
         }
+    }
+
+    /** A bottom-bar tab or a side-menu entry: back to the main screen, on [tab]. */
+    fun goTo(tab: HomeTab) {
+        _screens.value = listOf(Screen.Conversations)
+        _conversation.value = null
+        more.closeTerminal()
+        showTab(tab)
+    }
+
+    /** A side-menu entry that is a screen of its own, directly on top of the main screen. */
+    fun goTo(screen: Screen) {
+        _screens.value = listOf(Screen.Conversations)
+        _conversation.value = null
+        more.closeTerminal()
+        open(screen)
     }
 
     /** A notification tapped: its conversation on top of the list. */
@@ -621,6 +665,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val usage = runCatching { client.usage() }.getOrNull()
                 _home.update { it.copy(usage = usage) }
             }
+            if (_home.value.tab == HomeTab.TASKS) viewModelScope.launch { loadQueue() }
         }
     }
 
@@ -740,6 +785,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun showTab(tab: HomeTab) {
         _home.update { it.copy(tab = tab) }
         if (tab == HomeTab.SESSIONS) more.loadSessions()
+        if (tab == HomeTab.TASKS) viewModelScope.launch { loadQueue() }
+    }
+
+    /** Every conversation's waiting tasks: scheduled ones by time after the ones that may go now. */
+    private suspend fun loadQueue() {
+        val client = api ?: return
+        val waiting = _home.value.conversations.filter { it.pending > 0 }
+        val entries = runCatching {
+            coroutineScope {
+                waiting.map { c -> async { runCatching { c to client.tasks(c.id) }.getOrNull() } }.awaitAll()
+            }.filterNotNull().flatMap { (c, queue) ->
+                queue.tasks.mapIndexed { i, task -> QueueEntry(c.id, c.name, task, i, c.paused || queue.paused) }
+            }.sortedWith(compareBy({ it.task.notBefore != null }, { it.task.notBefore.orEmpty() }))
+        }.getOrNull() ?: return
+        _home.update { it.copy(queue = entries) }
+    }
+
+    /** A new task for [id] from the Tasks tab. */
+    fun addTaskTo(id: Int, text: String, whenText: String) = action { client ->
+        client.addTask(id, text, whenText)
+        refresh()
+        loadQueue()
     }
 
     fun setFilter(text: String) {

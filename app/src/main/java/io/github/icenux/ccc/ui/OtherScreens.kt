@@ -1,5 +1,36 @@
 package io.github.icenux.ccc.ui
 
+import io.github.icenux.ccc.ui.theme.CccFonts
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,21 +45,17 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -38,7 +65,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -82,7 +108,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
-import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
 import io.github.icenux.ccc.R
 import io.github.icenux.ccc.data.LaunchGroup
@@ -98,18 +123,9 @@ private const val FORK = "fork"
 private const val MCP_SELECT = "mcp_select"
 private const val MCP_PREFIX = "mcp:"
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopBar(title: String, onBack: (() -> Unit)?) {
-    TopAppBar(
-        title = { Text(title) },
-        navigationIcon = {
-            if (onBack != null) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) }
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = CccColors.Background),
-    )
+    HudHeader(title, onBack = onBack)
 }
 
 @Composable
@@ -146,7 +162,7 @@ fun ApprovalsScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun NewConversationScreen(
+fun NewConversationSheet(
     state: NewConversationState,
     snackbar: SnackbarHostState,
     onBack: () -> Unit,
@@ -185,26 +201,60 @@ fun NewConversationScreen(
             onLoadMcpServers(path.trim())
         }
     }
-    Scaffold(
-        topBar = { TopBar(stringResource(R.string.new_conversation), onBack) },
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
+    // The sheet rises on a spring over the screen below it; its scrim fades in; closing slides it away first.
+    var shown by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) { shown = true }
+    val dismiss: () -> Unit = {
+        shown = false
+        scope.launch { delay(220); onBack() }
+    }
+    BackHandler { dismiss() }
+    val scrim by animateFloatAsState(if (shown) 0.66f else 0f, tween(260), label = "sheet-scrim")
+    val sheetShape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = scrim))
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { dismiss() },
+        )
+        AnimatedVisibility(
+            visible = shown,
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = slideInVertically(spring(dampingRatio = 0.78f, stiffness = Spring.StiffnessMediumLow)) { it },
+            exit = slideOutVertically(tween(200)) { it },
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.93f)
+                    .clip(sheetShape)
+                    .background(CccColors.Background, sheetShape)
+                    .border(1.dp, CccColors.Cyan.copy(alpha = 0.8f), sheetShape)
+                    .imePadding()
+                    .navigationBarsPadding(),
+            ) {
+                Box(Modifier.align(Alignment.CenterHorizontally).padding(top = 10.dp).size(width = 40.dp, height = 4.dp)
+                    .background(CccColors.LineBright, RoundedCornerShape(2.dp)))
+                Row(Modifier.padding(start = 20.dp, end = 16.dp, top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.new_conversation), style = MaterialTheme.typography.headlineSmall, color = CccColors.Text)
+                    }
+                    FrameIconButton(dismiss) { Icon(Icons.Filled.Clear, stringResource(R.string.close), tint = CccColors.Dim) }
+                }
         Column(
             Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .imePadding()
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            Row { Caption(stringResource(R.string.folder), Modifier.weight(1f)); Caption(stringResource(R.string.new_required)) }
             OutlinedTextField(
                 value = path,
                 onValueChange = { path = it },
-                label = { Text(stringResource(R.string.folder)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = CccFonts.Mono),
             )
             if (state.projects.isNotEmpty()) {
                 // As the TUI's "Recent directories": whole paths, one tap fills the folder.
@@ -214,7 +264,7 @@ fun NewConversationScreen(
                         Text(
                             project,
                             Modifier.fillMaxWidth().clickable { path = project }.padding(vertical = 8.dp, horizontal = 4.dp),
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = CccFonts.Mono,
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (path == project) CccColors.Title else MaterialTheme.colorScheme.onSurface,
                             fontWeight = if (path == project) FontWeight.Bold else FontWeight.Normal,
@@ -243,10 +293,10 @@ fun NewConversationScreen(
                     }
                 }
             }
+            Caption(stringResource(R.string.name_optional))
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text(stringResource(R.string.name_optional)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -273,25 +323,32 @@ fun NewConversationScreen(
             }
             SwitchRow(stringResource(R.string.remote_control), remote) { remote = it }
             SwitchRow(stringResource(R.string.auto_continue), autoContinue) { autoContinue = it }
+            Row { Caption(stringResource(R.string.first_message), Modifier.weight(1f)); Caption(stringResource(R.string.new_optional)) }
             OutlinedTextField(
                 value = prompt,
                 onValueChange = { prompt = it },
-                label = { Text(stringResource(R.string.first_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(
-                onClick = {
-                    onCreate(NewConversation(path.trim(), name.trim(), selection, pr.trim(),
-                        if (resume) sessionId else "", remote, autoContinue, prompt))
-                },
-                enabled = path.isNotBlank() && !state.creating && (!resume || sessionId.isNotEmpty()),
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CccColors.Claude, contentColor = Color.Black),
-            ) {
-                if (state.creating) CircularProgressIndicator(Modifier.height(24.dp)) else Text(stringResource(R.string.start))
+        }
+                CccButton(
+                    onClick = {
+                        onCreate(NewConversation(path.trim(), name.trim(), selection, pr.trim(),
+                            if (resume) sessionId else "", remote, autoContinue, prompt))
+                    },
+                    enabled = path.isNotBlank() && !state.creating && (!resume || sessionId.isNotEmpty()),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(56.dp),
+                ) {
+                    if (state.creating) CircularProgressIndicator(Modifier.size(24.dp), color = CccColors.Background, strokeWidth = 2.dp)
+                    else {
+                        Icon(Icons.Filled.Add, null, Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.start), style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
         }
+        SnackbarHost(snackbar, Modifier.align(Alignment.TopCenter).statusBarsPadding())
     }
 }
 
@@ -526,7 +583,7 @@ private fun ConnectionCard(server: String, device: Device?, onDisconnect: () -> 
                     }
                 }
             }
-            OutlinedButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            CccButton(kind = ButtonKind.SECONDARY, onClick = onDisconnect, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 Text(stringResource(R.string.setup_disconnect), color = CccColors.Error)
             }
         }
@@ -659,7 +716,7 @@ fun SetupScreen(
             LanguageChoice(language, onLanguage)
             if (!signedIn) {
             Text(stringResource(R.string.setup_intro), style = MaterialTheme.typography.bodyMedium, color = CccColors.Muted)
-            Button(
+            CccButton(
                 onClick = {
                     scan.launch(ScanOptions().apply {
                         setDesiredBarcodeFormats(ScanOptions.QR_CODE)
@@ -695,7 +752,7 @@ fun SetupScreen(
                 keyboardActions = KeyboardActions(onGo = { connect() }),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(
+            CccButton(
                 onClick = { connect() },
                 enabled = address.isNotBlank() && token.isNotBlank() && !busy,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -731,11 +788,11 @@ fun SetupScreen(
                         if (on && !allowed) ask.launch(Manifest.permission.POST_NOTIFICATIONS) else onNotifications(on)
                     })
                 }
-                OutlinedButton(
+                CccButton(kind = ButtonKind.SECONDARY, 
                     onClick = { context.startActivity(notificationSettingsIntent(context)) },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(stringResource(R.string.notification_settings)) }
-                OutlinedButton(
+                CccButton(kind = ButtonKind.SECONDARY, 
                     onClick = { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) },
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(stringResource(R.string.battery)) }

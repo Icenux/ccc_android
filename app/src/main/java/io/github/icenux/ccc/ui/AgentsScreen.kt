@@ -1,5 +1,7 @@
 package io.github.icenux.ccc.ui
 
+import io.github.icenux.ccc.ui.theme.CccFonts
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -66,7 +68,7 @@ fun Picker(label: String, value: String, options: List<Pair<String, String>>, on
     Column {
         Text(label, style = MaterialTheme.typography.labelMedium, color = CccColors.Muted)
         Box {
-            OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+            CccButton(kind = ButtonKind.SECONDARY, onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(options.firstOrNull { it.first == value }?.second ?: value, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f))
                 Text("▾")
@@ -116,10 +118,9 @@ private fun RoundsField(value: String, onChange: (String) -> Unit) {
 
 @Composable
 private fun Go(text: String, enabled: Boolean, onClick: () -> Unit) {
-    Button(
+    CccButton(
         onClick = onClick,
         enabled = enabled,
-        colors = ButtonDefaults.buttonColors(containerColor = CccColors.Claude, contentColor = Color.Black),
     ) { Text(text) }
 }
 
@@ -139,6 +140,7 @@ class AgentsActions(
     val workflow: (String, String, String, Int?) -> Unit,
     val answer: (Boolean, String) -> Unit,
     val stopWorkflow: () -> Unit,
+    val openChat: () -> Unit = {},
 )
 
 /** Reviews (v), goal loops (g), and workflows (w) of one conversation. */
@@ -156,11 +158,10 @@ fun AgentsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = tab, containerColor = CccColors.Background, contentColor = CccColors.Title) {
-                listOf(R.string.reviews, R.string.goal, R.string.workflow).forEachIndexed { i, label ->
-                    Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(label), maxLines = 1) })
-                }
-            }
+            HudTabs(
+                listOf(R.string.reviews, R.string.goal, R.string.workflow).map { stringResource(it) }, tab,
+                Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            ) { tab = it }
             LazyColumn(
                 Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(12.dp),
@@ -168,7 +169,7 @@ fun AgentsScreen(
             ) {
                 when (tab) {
                     0 -> reviewsTab(state, actions)
-                    1 -> goalsTab(state, actions)
+                    1 -> goalsTab(state, name, actions)
                     else -> workflowsTab(state, actions)
                 }
             }
@@ -240,13 +241,17 @@ private fun Expandable(text: String, color: Color = Color.Unspecified, mono: Boo
         Modifier.clickable { open = !open },
         style = MaterialTheme.typography.bodySmall,
         color = color,
-        fontFamily = if (mono) FontFamily.Monospace else null,
+        fontFamily = if (mono) CccFonts.Mono else null,
     )
 }
 
-private fun LazyListScope.goalsTab(state: AgentsState, actions: AgentsActions) {
+private fun LazyListScope.goalsTab(state: AgentsState, name: String, actions: AgentsActions) {
     val goals = state.goals
     if (loading(goals != null) || goals == null) return
+    val latest = goals.goals.firstOrNull()
+    if (latest != null) {
+        item(key = "goal-loop") { GoalLoop(latest, name, goals.active, actions.stopGoal, actions.openChat) }
+    }
     item(key = "goal-form") {
         var goal by rememberSaveable { mutableStateOf("") }
         var check by rememberSaveable { mutableStateOf("") }
@@ -268,7 +273,7 @@ private fun LazyListScope.goalsTab(state: AgentsState, actions: AgentsActions) {
         }
     }
     if (goals.goals.isEmpty()) item { Empty(R.string.goals_empty) }
-    items(goals.goals, key = { "goal:${it.id}" }) { GoalCard(it) }
+    items(goals.goals.drop(1), key = { "goal:${it.id}" }) { GoalCard(it) }
 }
 
 @Composable
@@ -276,7 +281,7 @@ private fun GoalCard(goal: Goal) {
     Section(listOfNotNull(goal.statusLabel, "${goal.round}/${goal.maxRounds}", shortTime(goal.createdAt)).joinToString(" · ")) {
         Text(goal.goal, style = MaterialTheme.typography.bodyMedium)
         if (goal.checkCommand.isNotEmpty()) {
-            Text("${stringResource(R.string.check_command)}: ${goal.checkCommand}", fontFamily = FontFamily.Monospace,
+            Text("${stringResource(R.string.check_command)}: ${goal.checkCommand}", fontFamily = CccFonts.Mono,
                 style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
         }
         if (goal.status == "running") Text(goal.phaseLabel, color = CccColors.Waiting, style = MaterialTheme.typography.bodySmall)
