@@ -1,5 +1,7 @@
 package io.github.icenux.ccc.ui
 
+import io.github.icenux.ccc.ui.theme.CccFonts
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -225,7 +227,7 @@ fun LiveSessionsList(
                     Text(listOfNotNull(session.kindLabel ?: session.kind, session.statusLabel ?: session.status, session.stateLabel ?: session.state).joinToString(" · "),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (session.status == "idle") CccColors.Claude else CccColors.Waiting)
-                    Text(session.cwd, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
+                    Text(session.cwd, fontFamily = CccFonts.Mono, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
                 }
             }
         }
@@ -315,7 +317,7 @@ fun AnalyticsScreen(
                         style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
                 }
             }
-            item { OutlinedButton(onClick = onArchive) { Text(stringResource(R.string.archive_months)) } }
+            item { CccButton(kind = ButtonKind.SECONDARY, onClick = onArchive) { Text(stringResource(R.string.archive_months)) } }
         }
     }
 }
@@ -489,17 +491,17 @@ fun CccSettingsScreen(
             if (tab == 4) item {
                 Section(stringResource(R.string.settings_data)) {
                     Text(stringResource(R.string.backup_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-                    OutlinedButton(onClick = actions.backup) { Text(stringResource(R.string.backup_now)) }
+                    CccButton(kind = ButtonKind.SECONDARY, onClick = actions.backup) { Text(stringResource(R.string.backup_now)) }
                 }
             }
             if (tab == 5) item {
                 Section(stringResource(R.string.settings_connection)) {
                     Text(stringResource(R.string.settings_connection_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-                    Button(onClick = actions.connection, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.connection)) }
+                    CccButton(onClick = actions.connection, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.connection)) }
                 }
             }
             if (tab != 3 && tab != 5) item {
-                Button(onClick = {
+                CccButton(onClick = {
                     actions.save(buildMap {
                         put("groups", JsonPrimitive(groups))
                         put("continue_text", JsonPrimitive(continueText))
@@ -545,7 +547,7 @@ private fun PromptPresetsSection(presets: List<PromptPreset>, onSave: (List<Prom
                 }
             }
         }
-        if (presets.size < 9) OutlinedButton(onClick = { editing = -1 }) { Text(stringResource(R.string.add)) }
+        if (presets.size < 9) CccButton(kind = ButtonKind.SECONDARY, onClick = { editing = -1 }) { Text(stringResource(R.string.add)) }
     }
     editing?.let { index ->
         val preset = presets.getOrNull(index)

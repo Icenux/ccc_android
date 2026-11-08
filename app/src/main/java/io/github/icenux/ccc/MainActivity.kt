@@ -1,5 +1,7 @@
 package io.github.icenux.ccc
 
+import androidx.compose.animation.togetherWith
+
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -44,8 +46,15 @@ import io.github.icenux.ccc.ui.DiffScreen
 import io.github.icenux.ccc.ui.RunsScreen
 import io.github.icenux.ccc.ui.TasksActions
 import io.github.icenux.ccc.ui.TasksScreen
-import io.github.icenux.ccc.ui.NewConversationScreen
 import io.github.icenux.ccc.ui.Screen
+import io.github.icenux.ccc.ui.AppShell
+import io.github.icenux.ccc.ui.ShellState
+import io.github.icenux.ccc.ui.ShellActions
+import io.github.icenux.ccc.ui.ConversationDetailScreen
+import io.github.icenux.ccc.ui.DetailActions
+import io.github.icenux.ccc.ui.NewConversationSheet
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import io.github.icenux.ccc.data.Language
 import io.github.icenux.ccc.ui.SearchScreen
 import io.github.icenux.ccc.ui.SetupScreen
@@ -59,15 +68,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         // The events stream only while the app is on screen.
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStart(owner: LifecycleOwner) = model.setForeground(true)
             override fun onStop(owner: LifecycleOwner) = model.setForeground(false)
         })
-        setContent { CccTheme { App(model) } }
+        setContent {
+            val effects by model.effects.collectAsStateWithLifecycle()
+            CccTheme(effects) { App(model) }
+        }
         openFrom(intent)
     }
 
@@ -182,7 +194,16 @@ private fun App(model: AppViewModel) {
     updateOutcome?.let { UpdateOutcomeDialog(it, model::updateOutcomeShown) }
     BackHandler(enabled = screens.size > 1) { model.back() }
 
-    when (val screen = screens.last()) {
+    val effects by model.effects.collectAsStateWithLifecycle()
+    val top = screens.last()
+    // The new-conversation sheet slides over the screen below it.
+    val base = if (top == Screen.NewConversation && screens.size > 1) screens[screens.size - 2] else top
+    val previousDepth = remember { androidx.compose.runtime.mutableIntStateOf(screens.size) }
+    androidx.compose.runtime.SideEffect { previousDepth.intValue = screens.size }
+
+    @Composable
+    fun ScreenContent(screen: Screen) {
+     when (screen) {
         Screen.Setup -> SetupScreen(
             server = model.server,
             signedIn = screens.size > 1,
@@ -215,7 +236,9 @@ private fun App(model: AppViewModel) {
             appUpdate = appUpdate,
             actions = ConversationsActions(
                 open = { model.open(Screen.Conversation(it)) },
-                openQueue = { model.open(Screen.Tasks(it)) },
+                openQueue = { model.open(Screen.ConversationDetail(it)) },
+                openTasks = { model.open(Screen.Tasks(it)) },
+                addTask = model::addTaskTo,
                 approvals = { model.open(Screen.Approvals) },
                 settings = { model.open(Screen.CccSettings) },
                 new = { model.open(Screen.NewConversation) },
@@ -312,6 +335,7 @@ private fun App(model: AppViewModel) {
                     workflow = more::startWorkflow,
                     answer = more::answerWorkflow,
                     stopWorkflow = more::stopWorkflow,
+                    openChat = { model.open(Screen.Conversation(screen.id)) },
                 ),
             )
         }
@@ -378,13 +402,64 @@ private fun App(model: AppViewModel) {
             onOpen = { model.open(Screen.Conversation(it)) },
             onDecide = model::decide,
         )
-        Screen.NewConversation -> NewConversationScreen(
-            state = newConversation,
+        Screen.NewConversation -> Unit
+        is Screen.ConversationDetail -> ConversationDetailScreen(
+            conversation = (home.conversations + home.archived).firstOrNull { it.id == screen.id },
+            permissions = home.permissions.filter { it.conversationId == screen.id },
+            runs = runs?.takeIf { it.id == screen.id },
             snackbar = snackbar,
-            onBack = model::back,
-            onLoadSessions = model::loadSessions,
-            onLoadMcpServers = model::loadMcpServers,
-            onCreate = model::create,
+            actions = DetailActions(
+                back = model::back,
+                chat = { model.open(Screen.Conversation(screen.id)) },
+                queue = { model.open(Screen.Tasks(screen.id)) },
+                runs = { model.open(Screen.Runs(screen.id)) },
+                goal = { model.open(Screen.Agents(screen.id, 1)) },
+                decide = model::decide,
+            ),
         )
+     }
+    }
+
+    AppShell(
+        state = ShellState(
+            screen = base,
+            home = home,
+            server = model.server,
+            liveSessions = sessions?.size,
+            notifications = notifications,
+            effects = effects,
+        ),
+        actions = ShellActions(
+            tab = { model.goTo(it) },
+            screen = { model.goTo(it) },
+            notifications = model::setNotifications,
+            effects = model::setEffects,
+        ),
+    ) {
+        androidx.compose.animation.AnimatedContent(
+            targetState = base,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = {
+                val forward = screens.size >= previousDepth.intValue
+                val shift = if (forward) 1 else -1
+                (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
+                    androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(220)) { it / 14 * shift })
+                    .togetherWith(
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160)) +
+                            androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(160)) { -it / 14 * shift },
+                    )
+            },
+            label = "screens",
+        ) { screen -> ScreenContent(screen) }
+        if (top == Screen.NewConversation) {
+            NewConversationSheet(
+                state = newConversation,
+                snackbar = snackbar,
+                onBack = model::back,
+                onLoadSessions = model::loadSessions,
+                onLoadMcpServers = model::loadMcpServers,
+                onCreate = model::create,
+            )
+        }
     }
 }

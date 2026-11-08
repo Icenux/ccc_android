@@ -1,5 +1,7 @@
 package io.github.icenux.ccc.ui
 
+import io.github.icenux.ccc.ui.theme.CccFonts
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -141,7 +143,7 @@ fun TerminalScreen(state: TerminalState, name: String, snackbar: SnackbarHostSta
             ) {
                 Text(
                     remember(shown.screen) { screenText(shown.screen) },
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = CccFonts.Mono,
                     fontSize = 11.sp,
                     lineHeight = 13.sp,
                     softWrap = false,

@@ -18,6 +18,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(NOTIFICATIONS, false)
         set(value) = prefs.edit().putBoolean(NOTIFICATIONS, value).apply()
 
+    /** Glow and endless animations of the HUD look (the side menu's switch); on by default. */
+    var effects: Boolean
+        get() = prefs.getBoolean(EFFECTS, true)
+        set(value) = prefs.edit().putBoolean(EFFECTS, value).apply()
+
     /** The app's own language: "" = follow the phone, otherwise a language tag ("en", "cs"); not the computer's or ccc's. */
     var language: String
         get() = prefs.getString(LANGUAGE, "").orEmpty()
@@ -40,7 +45,8 @@ class Settings(context: Context) {
     fun clear() {
         // The language is the app's own choice, not part of the connection: it stays.
         val language = language
-        prefs.edit().clear().putString(LANGUAGE, language).apply()
+        val effects = effects
+        prefs.edit().clear().putString(LANGUAGE, language).putBoolean(EFFECTS, effects).apply()
     }
 
     private companion object {
@@ -50,6 +56,7 @@ class Settings(context: Context) {
         const val SHOWN = "shown_alerts"
         const val LIST_DETAILS = "list_details"
         const val LANGUAGE = "language"
+        const val EFFECTS = "effects"
     }
 }
 

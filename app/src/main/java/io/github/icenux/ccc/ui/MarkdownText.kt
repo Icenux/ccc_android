@@ -1,5 +1,7 @@
 package io.github.icenux.ccc.ui
 
+import io.github.icenux.ccc.ui.theme.CccFonts
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -72,7 +74,7 @@ private fun Block(block: MdBlock) {
         is MdBlock.Code -> Text(
             block.text,
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = CccFonts.Mono,
             softWrap = false,
             modifier = Modifier
                 .fillMaxWidth()
@@ -83,7 +85,7 @@ private fun Block(block: MdBlock) {
         is MdBlock.Table -> Text(
             block.lines.joinToString("\n"),
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
+            fontFamily = CccFonts.Mono,
             softWrap = false,
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         )
@@ -101,7 +103,7 @@ private fun styled(spans: List<MdSpan>): AnnotatedString {
                     fontWeight = if (span.bold) FontWeight.Bold else null,
                     fontStyle = if (span.italic) FontStyle.Italic else null,
                     textDecoration = if (span.strike) TextDecoration.LineThrough else null,
-                    fontFamily = if (span.code) FontFamily.Monospace else null,
+                    fontFamily = if (span.code) CccFonts.Mono else null,
                     background = if (span.code) CccColors.SurfaceHigh else androidx.compose.ui.graphics.Color.Unspecified,
                     fontSize = if (span.code) 13.sp else androidx.compose.ui.unit.TextUnit.Unspecified,
                 )

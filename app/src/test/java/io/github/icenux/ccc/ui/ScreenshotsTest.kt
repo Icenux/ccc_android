@@ -1,6 +1,7 @@
 package io.github.icenux.ccc.ui
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -93,12 +94,16 @@ open class ScreenshotsTest {
 
     @Test
     fun conversations() = shot("conversations", "shop-api") {
-        ConversationsScreen(home.copy(tab = HomeTab.CONVERSATIONS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        shell(HomeTab.CONVERSATIONS) {
+            ConversationsScreen(home.copy(tab = HomeTab.CONVERSATIONS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        }
     }
 
     @Test
     fun dashboard() = shot("dashboard", "shop-api") {
-        ConversationsScreen(home.copy(tab = HomeTab.DASHBOARD), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        shell(HomeTab.DASHBOARD) {
+            ConversationsScreen(home.copy(tab = HomeTab.DASHBOARD), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        }
     }
 
     @Test
@@ -109,19 +114,25 @@ open class ScreenshotsTest {
                 "5c4b3a2 Dashboard: git state"),
         )
         val status = home.status!!.copy(update = update, androidBuild = 6)
-        ConversationsScreen(home.copy(tab = HomeTab.CONVERSATIONS, status = status, waiting = emptyList(), usage = null), ListDetail.DEFAULT,
-            AppRelease("1.2.0", "", ""), SnackbarHostState(), listActions)
+        shell(HomeTab.CONVERSATIONS) {
+            ConversationsScreen(home.copy(tab = HomeTab.CONVERSATIONS, status = status, waiting = emptyList(), usage = null), ListDetail.DEFAULT,
+                AppRelease("1.2.0", "", ""), SnackbarHostState(), listActions)
+        }
     }
 
     @Test
     fun restartNeeded() = shot("restart_needed", "shop-api") {
         val status = home.status!!.copy(restartNeeded = true)
-        ConversationsScreen(home.copy(tab = HomeTab.DASHBOARD, status = status), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        shell(HomeTab.DASHBOARD) {
+            ConversationsScreen(home.copy(tab = HomeTab.DASHBOARD, status = status), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        }
     }
 
     @Test
     fun archive() = shot("archive", "old-prototype") {
-        ConversationsScreen(home.copy(tab = HomeTab.ARCHIVE, filter = "proto"), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        shell(HomeTab.ARCHIVE) {
+            ConversationsScreen(home.copy(tab = HomeTab.ARCHIVE, filter = "proto"), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        }
     }
 
     @Test
@@ -196,9 +207,11 @@ open class ScreenshotsTest {
 
     @Test
     fun liveSessions() = shot("live_sessions", "refactor-auth") {
-        ConversationsScreen(home.copy(tab = HomeTab.SESSIONS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions,
-            listOf(LiveSession("a1", "refactor-auth", "/home/you/projects/shop-api", "interactive", "busy"),
-                LiveSession("b2", "nightly-etl", "/home/you/projects/data-pipeline", "background", "idle")))
+        shell(HomeTab.SESSIONS) {
+            ConversationsScreen(home.copy(tab = HomeTab.SESSIONS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions,
+                listOf(LiveSession("a1", "refactor-auth", "/home/you/projects/shop-api", "interactive", "busy"),
+                    LiveSession("b2", "nightly-etl", "/home/you/projects/data-pipeline", "background", "idle")))
+        }
     }
 
     @Test
@@ -213,12 +226,47 @@ open class ScreenshotsTest {
 
     @Test
     fun newConversation() = shot("new_conversation", "shop-api") {
-        NewConversationScreen(
-            NewConversationState(launchOptions, listOf("/home/you/projects/shop-api", "/home/you/projects/docs-site"),
-                LaunchPresets(presets = listOf(LaunchChoice(listOf("perm_plan", "model_opus"), name = "Review"),
-                    LaunchChoice(listOf("perm_skip", "model_sonnet"), name = "Quick fix")))),
-            SnackbarHostState(), {}, {}, {}, {},
-        )
+        Box {
+            ConversationsScreen(home.copy(tab = HomeTab.TASKS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+            NewConversationSheet(
+                NewConversationState(launchOptions, listOf("/home/you/projects/shop-api", "/home/you/projects/docs-site"),
+                    LaunchPresets(presets = listOf(LaunchChoice(listOf("perm_plan", "model_opus"), name = "Review"),
+                        LaunchChoice(listOf("perm_skip", "model_sonnet"), name = "Quick fix")))),
+                SnackbarHostState(), {}, {}, {}, {},
+            )
+        }
+    }
+
+    @Test
+    fun taskQueue() = shot("task_queue", "admin endpoints") {
+        shell(HomeTab.TASKS) {
+            ConversationsScreen(home.copy(tab = HomeTab.TASKS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        }
+    }
+
+    @Test
+    fun conversationDetail() = shot("conversation_detail", "Add rate limiting") {
+        shell(HomeTab.CONVERSATIONS, Screen.ConversationDetail(1)) {
+            ConversationDetailScreen(home.conversations.first(), listOf(permission), runsState, SnackbarHostState(),
+                DetailActions({}, {}, {}, {}, {}, { _, _ -> }))
+        }
+    }
+
+    @Test
+    fun goalLoop() = shot("goal_loop", "Rate limit per API key") {
+        shell(HomeTab.CONVERSATIONS, Screen.Agents(1, 1)) {
+            AgentsScreen(agentsState.copy(goals = goalsState), "shop-api", 1, SnackbarHostState(), agentsActions)
+        }
+    }
+
+    @Test
+    fun menu() = shot("menu", "Dashboard", act = {
+        val more = compose.activity.getString(io.github.icenux.ccc.R.string.more)
+        compose.onAllNodesWithText(more).onFirst().performClick()
+    }) {
+        shell(HomeTab.DASHBOARD) {
+            ConversationsScreen(home.copy(tab = HomeTab.DASHBOARD), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+        }
     }
 
     @Test
@@ -256,10 +304,11 @@ open class ScreenshotsTest {
         TerminalScreen(terminalState, "web", SnackbarHostState(), TerminalActions({}, { _, _ -> }, {}, {}))
     }
 
-    private fun shot(name: String, expect: String, scrollTo: Int? = null, dialog: Boolean = false, content: @Composable () -> Unit) {
-        compose.setContent { CccTheme(content) }
+    private fun shot(name: String, expect: String, scrollTo: Int? = null, dialog: Boolean = false, act: (() -> Unit)? = null, content: @Composable () -> Unit) {
+        compose.setContent { CccTheme { content() } }
         compose.onAllNodesWithText(expect, substring = true, useUnmergedTree = true).onFirst().assertExists()
         scrollTo?.let { compose.onAllNodesWithText(compose.activity.getString(it)).onFirst().performScrollTo() }
+        act?.invoke()
         compose.waitForIdle()
         if (dialog) {
             if (name == "routine_delete") {
@@ -269,6 +318,16 @@ open class ScreenshotsTest {
             }
             saveWithDialog(name)
         } else save(name)
+    }
+
+    /** The screen inside the side menu and bottom bar, as the app shows it. */
+    @Composable
+    private fun shell(tab: HomeTab, screen: Screen = Screen.Conversations, content: @Composable () -> Unit) {
+        AppShell(
+            ShellState(screen, home.copy(tab = tab), "computer.tailnet.ts.net", 1, notifications = false, effects = true),
+            ShellActions({}, {}, {}, {}),
+            content,
+        )
     }
 
     /** The dialog is a window of its own: lay its picture over the dimmed screen below. */
@@ -411,7 +470,23 @@ open class ScreenshotsTest {
             input = buildJsonObject { put("command", JsonPrimitive("pytest -q tests/api")) },
         )
 
+        val goalsState = Goals(active = true, goals = listOf(
+            io.github.icenux.ccc.data.Goal(
+                3, "Rate limit per API key", "pytest -q", round = 2, maxRounds = 5, status = "running", statusLabel = "running",
+                phaseLabel = "Claude works on round 2",
+                lastReason = "→ pytest -q tests/api\n✓ 8 passed in 2.1s\nreview: reading the diff…\nsrc/api/limits.py +42 -7",
+                createdAt = java.time.LocalDateTime.now().minusMinutes(2).toString(),
+            ),
+        ))
+
         val home = HomeState(
+            queue = listOf(
+                QueueEntry(1, "shop-api", Task(11, "Add rate limiting to the admin endpoints too"), 0, false),
+                QueueEntry(3, "data-pipeline", Task(12, "Fix the 3 failing pytest tests in the nightly import",
+                    notBefore = "2026-10-22T22:00:00", byRoutine = true), 0, false),
+                QueueEntry(2, "docs-site", Task(13, "Update the changelog for release 2.1"), 0, false),
+                QueueEntry(5, "infra", Task(14, "Check dependency updates and open a pull request", byRoutine = true), 0, false),
+            ),
             status = Status("0.1.0", "en", daemonRunning = true, conversations = 5, running = 2, needsApproval = 1),
             usage = Usage(UsageWindow(64.0), UsageWindow(38.0)),
             permissions = listOf(permission),
