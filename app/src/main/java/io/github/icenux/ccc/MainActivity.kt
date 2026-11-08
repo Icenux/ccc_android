@@ -280,6 +280,7 @@ private fun App(model: AppViewModel) {
                     runs = { model.open(Screen.Runs(screen.id)) },
                     agents = { model.open(Screen.Agents(screen.id)) },
                     terminal = { model.open(Screen.Terminal(screen.id)) },
+                    answerPrompt = model::answerPrompt,
                 ),
             )
         }
