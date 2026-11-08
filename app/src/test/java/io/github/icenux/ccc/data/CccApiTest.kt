@@ -288,4 +288,117 @@ class CccApiTest {
         assertNull(CccApi.baseUrl(""))
         assertTrue(CccApi.baseUrl("not an address") == null)
     }
+
+    // --- Claude Code agents (the files in .claude/agents) -----------------------------------------------
+
+    @Test
+    fun `lists the agents of a folder with the folder as the query and none for the user's own`() = runBlocking {
+        answers["agents"] = 200 to """[{"name": "reviewer", "description": "Reviews", "scope": "project", "tools": ["Read", "Grep"],
+            "model": "haiku", "problem": "", "overridden": false, "file": "reviewer.md"},
+            {"name": "bad", "description": "", "scope": "user", "tools": null, "model": "", "problem": "no description",
+            "overridden": false, "file": "bad.md"}]"""
+
+        val (reviewer, bad) = api().subagents("/p")
+        api().subagents("")
+
+        assertEquals(listOf("Read", "Grep"), reviewer.tools)
+        assertNull(bad.tools)  // null: every tool
+        assertEquals("no description", bad.problem)
+        assertEquals("/api/v1/agents?path=%2Fp", seen[0].uri)
+        assertEquals("/api/v1/agents", seen[1].uri)
+    }
+
+    @Test
+    fun `opens one agent whole and changes it with the version it was opened with`() = runBlocking {
+        answers["agents/project/reviewer"] = 200 to """{"name": "reviewer", "description": "Reviews", "scope": "project",
+            "tools": ["Read"], "model": "haiku", "prompt": "You review.", "version": "12-34"}"""
+        val agent = api().subagent("project", "reviewer", "/p")
+        assertEquals("You review.", agent.prompt)
+
+        api().editSubagent(agent.copy(description = "New", tools = null, model = "", prompt = "Changed"), "/p")
+
+        val change = seen.last()
+        assertEquals("POST", change.method)
+        assertEquals("/api/v1/agents/project/reviewer", change.uri)
+        for (part in listOf(""""version":"12-34"""", """"tools":null""", """"description":"New"""", """"path":"/p"""", """"prompt":"Changed"""")) {
+            assertTrue("$part in ${change.body}", change.body.replace(" ", "").contains(part.replace(" ", "")))
+        }
+    }
+
+    @Test
+    fun `creates an agent with its tools as a list and removes one with a DELETE`() = runBlocking {
+        answers["agents"] = 201 to """{"name": "checker", "scope": "project", "new_folder": true, "version": "1-2"}"""
+        answers["agents/project/checker"] = 200 to """{"removed": "checker"}"""
+
+        val made = api().createSubagent(Subagent("checker", "Checks", "project", listOf("Read", "Grep"), "haiku", prompt = "You check."), "/p")
+        val removed = api().deleteSubagent("project", "checker", "/p")
+
+        assertTrue(made.newFolder)
+        val body = seen[0].body.replace(" ", "")
+        assertTrue(body, body.contains(""""scope":"project"""") && body.contains(""""name":"checker"""") && body.contains(""""tools":["Read","Grep"]"""))
+        assertEquals("checker", removed.removed)
+        assertEquals("DELETE", seen[1].method)
+        assertEquals("/api/v1/agents/project/checker?path=%2Fp", seen[1].uri)
+    }
+
+    @Test
+    fun `reads the templates and the wizard's choices and the prompt ccc writes`() = runBlocking {
+        answers["agent-options"] = 200 to """{"templates": [{"key": "test-runner", "title": "Test runner", "description": "Runs tests",
+            "tools": ["Bash"], "model": "haiku", "prompt": "You run tests."}],
+            "access": [{"key": "read", "label": "Only read", "tools": ["Read", "Grep", "Glob"]}],
+            "effort": [{"key": "fast", "label": "Fast", "model": "haiku"}], "models": ["", "sonnet"],
+            "default_access": "read", "default_effort": "balanced"}"""
+        answers["agents/prompt"] = 200 to """{"prompt": "You check.", "by": "claude"}"""
+
+        val options = api().subagentOptions()
+        val prompt = api().subagentPrompt("Checks texts", "read", claude = true)
+
+        assertEquals("test-runner", options.templates.single().key)
+        assertEquals(listOf("Read", "Grep", "Glob"), options.access.single().tools)
+        assertEquals("balanced", options.defaultEffort)
+        assertEquals("claude", prompt.by)
+        assertTrue(seen.last().body.replace(" ", "").contains(""""claude":true"""))
+    }
+
+    @Test
+    fun `a refusal of a change reaches the user as ccc's own message`() = runBlocking {
+        answers["agents"] = 403 to """{"error": "This device may not do that: it is operate, this needs admin."}"""
+        try {
+            api().createSubagent(Subagent("x", "d", "user", null, "", prompt = "p"), "")
+            fail("expected an ApiException")
+        } catch (e: ApiException) {
+            assertEquals(403, e.code)
+            assertTrue(e.message!!.contains("needs admin"))
+        }
+    }
+
+    @Test
+    fun `an agent name from a file never reaches a path as it is`() = runBlocking {
+        answers["agents/project/reviewer"] = 200 to """{"name": "reviewer", "scope": "project", "prompt": "p", "version": "1-1"}"""
+        val evil = listOf("../conversations/5", "..", ".", "a/b", "a%2Fb", "a b", "", "-x", "x".repeat(65), "..%2F..")
+        for (name in evil) {
+            for (call in listOf<suspend () -> Any>(
+                { api().subagent("project", name, "/p") },
+                { api().deleteSubagent("project", name, "/p") },
+                { api().editSubagent(Subagent(name, "d", "project", null, "", prompt = "p", version = "1-1"), "/p") },
+            )) {
+                try {
+                    call()
+                    fail("expected a refusal for '$name'")
+                } catch (e: ApiException) {
+                    assertEquals(400, e.code)
+                }
+            }
+        }
+        try {
+            api().subagent("../../x", "reviewer", "/p")
+            fail("expected a refusal for the scope")
+        } catch (e: ApiException) {
+            assertEquals(400, e.code)
+        }
+        assertTrue("nothing was sent: $seen", seen.isEmpty())
+        assertEquals("reviewer", api().subagent("project", "reviewer", "/p").name)  // a plain name still works
+        assertEquals("/api/v1/agents/project/reviewer?path=%2Fp", seen.single().uri)
+        assertTrue(Subagent.addressable("code-reviewer") && Subagent.addressable("a.b_c-1") && !Subagent.addressable("a/b"))
+    }
 }

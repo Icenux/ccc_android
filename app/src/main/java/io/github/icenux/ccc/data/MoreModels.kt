@@ -233,3 +233,69 @@ data class CccSettings(
     @SerialName("notify_discord") val notifyDiscord: Map<String, Boolean> = emptyMap(),
     @SerialName("launch_presets") val launchPresets: List<String> = emptyList(),
 )
+
+// --- Claude Code subagents (src/ccc/api_subagents.py): the files in .claude/agents ----------------------------
+
+/**
+ * One agent: [tools] null = every tool, [model] "" = the session's. [problem] says why Claude Code would skip the
+ * file (empty = it loads), [overridden] that an agent of the same name closer to the project wins. [prompt] and
+ * [version] come only with one agent (GET /agents/{scope}/{name}); [version] must go back with a change.
+ */
+@Serializable
+data class Subagent(
+    val name: String,
+    val description: String = "",
+    val scope: String = SCOPE_PROJECT,
+    val tools: List<String>? = null,
+    val model: String = "",
+    val problem: String = "",
+    val overridden: Boolean = false,
+    val file: String = "",
+    val prompt: String = "",
+    val version: String = "",
+    @SerialName("new_folder") val newFolder: Boolean = false,
+) {
+    companion object {
+        const val SCOPE_PROJECT = "project"
+        const val SCOPE_USER = "user"
+        private val ADDRESSABLE = Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+
+        /**
+         * Whether the app may put [name] into a request. The name comes from the agent's file, so anything can be
+         * in it; only plain names (no slash, nothing that reads as a path) are used. Others are changed on the computer.
+         */
+        fun addressable(name: String): Boolean = ADDRESSABLE.matches(name)
+    }
+}
+
+@Serializable
+data class SubagentTemplate(
+    val key: String,
+    val title: String,
+    val description: String,
+    val tools: List<String> = emptyList(),
+    val model: String = "",
+    val prompt: String = "",
+)
+
+/** A wizard answer: "may it change anything?" ([tools]) or "how thorough?" ([model]). */
+@Serializable
+data class SubagentChoice(val key: String, val label: String, val tools: List<String> = emptyList(), val model: String = "")
+
+/** What a new agent is offered (GET /agent-options), in the phone's language. */
+@Serializable
+data class SubagentOptions(
+    val templates: List<SubagentTemplate> = emptyList(),
+    val access: List<SubagentChoice> = emptyList(),
+    val effort: List<SubagentChoice> = emptyList(),
+    val models: List<String> = emptyList(),
+    @SerialName("default_access") val defaultAccess: String = "read",
+    @SerialName("default_effort") val defaultEffort: String = "balanced",
+)
+
+/** The instructions of a new agent: [by] is "outline" or "claude". */
+@Serializable
+data class SubagentPrompt(val prompt: String, val by: String = "")
+
+@Serializable
+data class SubagentRemoved(val removed: String)

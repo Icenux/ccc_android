@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import okhttp3.HttpUrl
@@ -229,6 +230,65 @@ class CccApi(
         post("routines/$id/enabled", body("enabled" to JsonPrimitive(enabled)))
 
     suspend fun runRoutine(id: Int): RoutineRun = post("routines/$id/run", "{}")
+
+    // --- Claude Code subagents (the files in .claude/agents) ---------------------------------------
+
+    /** The agents of [path]'s project and the user's; an empty [path] gives only the user's. */
+    suspend fun subagents(path: String): List<Subagent> = get("agents", if (path.isEmpty()) emptyMap() else mapOf("path" to path))
+
+    /**
+     * The request for one agent. Its name is whatever the file says (a repository can hold an agent called
+     * `../conversations/5`), so it never becomes part of a path as it is: scope and name are checked and each is
+     * a path segment of its own, encoded.
+     */
+    private fun agentRequest(scope: String, name: String, path: String): Request.Builder {
+        if (scope != Subagent.SCOPE_PROJECT && scope != Subagent.SCOPE_USER || !Subagent.addressable(name)) {
+            throw ApiException(400, "The app cannot address the agent \"${name.take(40)}\": change it on the computer.")
+        }
+        val url = base.newBuilder().addPathSegment("agents").addPathSegment(scope).addPathSegment(name).apply {
+            if (path.isNotEmpty()) addQueryParameter("path", path)
+        }.build()
+        return Request.Builder().url(url).header("Authorization", "Bearer $token").header("Accept-Language", phoneLanguage())
+    }
+
+    /** One agent with its prompt and the `version` a change has to send back. */
+    suspend fun subagent(scope: String, name: String, path: String): Subagent =
+        call(agentRequest(scope, name, path).get().build())
+
+    private fun subagentFields(a: Subagent, path: String, vararg more: Pair<String, JsonElement>): String = body(
+        "path" to JsonPrimitive(path), "description" to JsonPrimitive(a.description),
+        "tools" to (a.tools?.let { tools -> JsonArray(tools.map { JsonPrimitive(it) }) } ?: JsonNull),
+        "model" to JsonPrimitive(a.model), "prompt" to JsonPrimitive(a.prompt), *more,
+    )
+
+    /** A new agent file (admin devices only); never overwrites one. */
+    suspend fun createSubagent(a: Subagent, path: String): Subagent =
+        post("agents", subagentFields(a, path, "scope" to JsonPrimitive(a.scope), "name" to JsonPrimitive(a.name)))
+
+    /** Changes description, tools, model and prompt of the agent; 409 when the file changed since [Subagent.version]. */
+    suspend fun editSubagent(a: Subagent, path: String): Subagent =
+        call(agentRequest(a.scope, a.name, "").post(subagentFields(a, path, "version" to JsonPrimitive(a.version)).toRequestBody(JSON)).build())
+
+    suspend fun deleteSubagent(scope: String, name: String, path: String): SubagentRemoved =
+        call(agentRequest(scope, name, path).delete().build())
+
+    suspend fun subagentOptions(): SubagentOptions = get("agent-options")
+
+    /**
+     * The instructions of a new agent: an outline, or with [claude] written by Claude (which can take a minute, so
+     * the wait is longer than for any other call).
+     */
+    suspend fun subagentPrompt(description: String, access: String, claude: Boolean): SubagentPrompt = withContext(Dispatchers.IO) {
+        val long = client.newBuilder().readTimeout(150, TimeUnit.SECONDS).build()
+        val request = request("agents/prompt").post(
+            body("description" to JsonPrimitive(description), "access" to JsonPrimitive(access),
+                "claude" to JsonPrimitive(claude)).toRequestBody(JSON)).build()
+        long.newCall(request).execute().use { response ->
+            val text = response.body.string()
+            if (!response.isSuccessful) throw error(response.code, text)
+            json.decodeFromString<SubagentPrompt>(text)
+        }
+    }
 
     suspend fun liveSessions(): List<LiveSession> = get("live-sessions")
 
