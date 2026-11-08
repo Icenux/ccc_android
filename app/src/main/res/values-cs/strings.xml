@@ -406,4 +406,5 @@
     <string name="goal_queued">ve frontě</string>
     <string name="goal_open_chat">Otevřít chat</string>
     <string name="goal_conversation">Konverzace %1$s</string>
+    <string name="claude_working">Claude pracuje</string>
 </resources>

@@ -327,7 +327,7 @@ fun NewConversationSheet(
             OutlinedTextField(
                 value = prompt,
                 onValueChange = { prompt = it },
-                minLines = 3,
+                minLines = 3, keyboardOptions = SentenceKeyboard,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

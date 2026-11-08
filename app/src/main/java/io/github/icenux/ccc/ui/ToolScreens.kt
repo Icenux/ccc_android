@@ -184,7 +184,7 @@ private fun RoutineDialog(
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Picker(stringResource(R.string.routine_conversation), conversation, conversations.map { it.id.toString() to it.name }) { conversation = it } }
                 item { OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), singleLine = true, label = { Text(stringResource(R.string.name_optional)) }) }
-                item { OutlinedTextField(prompt, { prompt = it }, Modifier.fillMaxWidth(), minLines = 3, label = { Text(stringResource(R.string.routine_prompt)) }) }
+                item { OutlinedTextField(prompt, { prompt = it }, Modifier.fillMaxWidth(), minLines = 3, keyboardOptions = SentenceKeyboard, label = { Text(stringResource(R.string.routine_prompt)) }) }
                 item { Picker(stringResource(R.string.routine_when), kind, kinds.map { it.kind to it.label }) { kind = it } }
                 item {
                     OutlinedTextField(value, { value = it }, Modifier.fillMaxWidth(), singleLine = true,
@@ -237,7 +237,7 @@ fun LiveSessionsList(
         AlertDialog(
             onDismissRequest = { target = null },
             title = { Text(session.name) },
-            text = { OutlinedTextField(prompt, { prompt = it }, Modifier.fillMaxWidth(), minLines = 4,
+            text = { OutlinedTextField(prompt, { prompt = it }, Modifier.fillMaxWidth(), minLines = 4, keyboardOptions = SentenceKeyboard,
                 placeholder = { Text(stringResource(R.string.message_hint)) }) },
             confirmButton = {
                 TextButton(onClick = { onPrompt(session.sessionId, prompt); target = null }, enabled = prompt.isNotBlank()) {
@@ -560,7 +560,7 @@ private fun PromptPresetsSection(presets: List<PromptPreset>, onSave: (List<Prom
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(name, { name = it }, singleLine = true, label = { Text(stringResource(R.string.name)) })
-                    OutlinedTextField(text, { text = it }, minLines = 3, label = { Text(stringResource(R.string.text)) })
+                    OutlinedTextField(text, { text = it }, minLines = 3, keyboardOptions = SentenceKeyboard, label = { Text(stringResource(R.string.text)) })
                     CheckLine(stringResource(if (sendNow) R.string.send_now else R.string.send_now_off), sendNow) { sendNow = it }
                 }
             },

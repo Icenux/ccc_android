@@ -196,7 +196,7 @@ private fun TaskDialog(task: Task?, onClose: () -> Unit = {}, onSave: (String, S
         title = { Text(stringResource(if (task == null) R.string.task_add else R.string.task_edit)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 4, maxLines = 10,
+                OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 4, keyboardOptions = SentenceKeyboard, maxLines = 10,
                     modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     value = whenText,
@@ -385,7 +385,7 @@ fun DiffScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(line.text, fontFamily = CccFonts.Mono, style = MaterialTheme.typography.bodySmall,
                         color = CccColors.Muted, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                    OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3,
+                    OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3, keyboardOptions = SentenceKeyboard,
                         placeholder = { Text(stringResource(R.string.comment_hint)) }, modifier = Modifier.fillMaxWidth())
                 }
             },

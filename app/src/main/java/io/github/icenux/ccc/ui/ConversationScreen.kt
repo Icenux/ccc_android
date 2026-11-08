@@ -1,5 +1,11 @@
 package io.github.icenux.ccc.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.size
@@ -39,14 +45,11 @@ import io.github.icenux.ccc.data.Permission
 import io.github.icenux.ccc.data.PromptPreset
 import io.github.icenux.ccc.data.mentionAt
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -123,6 +126,8 @@ fun ConversationScreen(
     // A "send at once" preset is only sent after this confirmation (a stray tap must not send).
     var confirmPreset by remember { mutableStateOf<PromptPreset?>(null) }
     val archived = detail?.archived == true
+    // Claude is busy (and not stopped on an approval): the screen shows it moving.
+    val working = detail?.state == ConversationStatus.RUNNING && detail.permissions.isEmpty()
     val list = rememberLazyListState()
     // reverseLayout: item 0 is the newest, at the bottom; keep it in view when one arrives.
     val newest = state.messages.lastOrNull()?.index
@@ -131,6 +136,7 @@ fun ConversationScreen(
     }
     Scaffold(
         topBar = {
+          Column {
             Row(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -180,6 +186,8 @@ fun ConversationScreen(
                     }
                 }
             }
+            if (working) ScanLine()
+          }
         },
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
@@ -235,6 +243,7 @@ fun ConversationScreen(
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = draft,
+                        keyboardOptions = SentenceKeyboard,
                         onValueChange = {
                             draft = it
                             actions.mention(mentionAt(it.text.substring(0, it.selection.end))?.second)
@@ -273,6 +282,7 @@ fun ConversationScreen(
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
         ) {
+            if (working) item(key = "working") { WorkingIndicator(Modifier.animateItem()) }
             detail?.queued?.reversed()?.let { queued ->
                 items(queued, key = { "queued:${it.id}" }) { QueuedBubble(it.text, Modifier.animateItem()) }
             }
@@ -491,5 +501,50 @@ private fun ToolLine(message: Message, modifier: Modifier) {
             maxLines = if (open) Int.MAX_VALUE else PREVIEW_LINES,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+
+/** A thin light that runs along the bottom edge of the header for as long as Claude works. */
+@Composable
+private fun ScanLine() {
+    val loops = effects().loops
+    val progress = if (loops) {
+        rememberInfiniteTransition(label = "scan").animateFloat(
+            -0.3f, 1f, infiniteRepeatable(androidx.compose.animation.core.tween(1500, easing = androidx.compose.animation.core.LinearEasing)),
+            label = "scan-progress",
+        ).value
+    } else 0.5f
+    Box(
+        Modifier.fillMaxWidth().height(2.dp).background(CccColors.Line).drawBehind {
+            val w = size.width
+            drawRect(
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    listOf(androidx.compose.ui.graphics.Color.Transparent, CccColors.Cyan, androidx.compose.ui.graphics.Color.Transparent),
+                    startX = w * progress, endX = w * (progress + 0.3f),
+                ),
+            )
+        },
+    )
+}
+
+/** "Claude is working" with three dots that jump one after another — under the newest message. */
+@Composable
+private fun WorkingIndicator(modifier: Modifier = Modifier) {
+    val loops = effects().loops
+    val transition = rememberInfiniteTransition(label = "working")
+    Row(modifier.padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        repeat(3) { i ->
+            val level = if (loops) {
+                transition.animateFloat(
+                    0.25f, 1f,
+                    infiniteRepeatable(androidx.compose.animation.core.tween(600, delayMillis = i * 160, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                    label = "working-dot-$i",
+                ).value
+            } else 1f
+            GlowDot(CccColors.Cyan, Modifier.alpha(level).padding(end = 6.dp), size = 7.dp)
+        }
+        Spacer(Modifier.width(4.dp))
+        Text(stringResource(R.string.claude_working), style = MaterialTheme.typography.labelMedium, color = CccColors.Cyan)
     }
 }
