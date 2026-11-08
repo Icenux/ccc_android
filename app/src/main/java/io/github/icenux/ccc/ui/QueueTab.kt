@@ -189,7 +189,7 @@ internal fun NewTaskDialog(conversations: List<Conversation>, onClose: () -> Uni
                     stringResource(R.string.queue_for_conversation), id.toString(),
                     conversations.map { it.id.toString() to it.name },
                 ) { id = it.toInt() }
-                OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3, maxLines = 8, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = text, onValueChange = { text = it }, minLines = 3, keyboardOptions = SentenceKeyboard, maxLines = 8, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(
                     value = whenText, onValueChange = { whenText = it }, singleLine = true,
                     label = { Text(stringResource(R.string.task_when)) },

@@ -529,3 +529,8 @@ fun SpinningIcon(modifier: Modifier = Modifier, tint: Color = CccColors.Amber) {
     } else 0f
     Icon(HudIcons.Spinner, null, modifier.graphicsLayer { rotationZ = angle }, tint = tint)
 }
+
+/** Free text (messages, tasks, prompts): the keyboard's own habits — a capital after a full stop. */
+internal val SentenceKeyboard = androidx.compose.foundation.text.KeyboardOptions(
+    capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+)

@@ -191,7 +191,7 @@ private fun LazyListScope.reviewsTab(state: AgentsState, actions: AgentsActions)
         var rounds by rememberSaveable { mutableStateOf("5") }
         Section(stringResource(R.string.review_new)) {
             Text(stringResource(R.string.review_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-            OutlinedTextField(instructions, { instructions = it }, Modifier.fillMaxWidth(), minLines = 3,
+            OutlinedTextField(instructions, { instructions = it }, Modifier.fillMaxWidth(), minLines = 3, keyboardOptions = SentenceKeyboard,
                 placeholder = { Text(stringResource(R.string.review_instructions)) })
             CheckLine(stringResource(R.string.review_until_pass), untilPass) { untilPass = it }
             if (untilPass) RoundsField(rounds) { rounds = it }
@@ -258,7 +258,7 @@ private fun LazyListScope.goalsTab(state: AgentsState, name: String, actions: Ag
         var rounds by rememberSaveable { mutableStateOf("5") }
         Section(stringResource(R.string.goal_new)) {
             Text(stringResource(R.string.goal_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-            OutlinedTextField(goal, { goal = it }, Modifier.fillMaxWidth(), minLines = 3,
+            OutlinedTextField(goal, { goal = it }, Modifier.fillMaxWidth(), minLines = 3, keyboardOptions = SentenceKeyboard,
                 placeholder = { Text(stringResource(R.string.goal_text)) })
             OutlinedTextField(check, { check = it }, Modifier.fillMaxWidth(), singleLine = true,
                 label = { Text(stringResource(R.string.check_command)) })
@@ -310,7 +310,7 @@ private fun LazyListScope.workflowsTab(state: AgentsState, actions: AgentsAction
                 Text(it.steps, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
                 if (it.details.isNotEmpty()) Expandable(it.details, CccColors.Muted, mono = true)
             }
-            OutlinedTextField(task, { task = it }, Modifier.fillMaxWidth(), minLines = 3,
+            OutlinedTextField(task, { task = it }, Modifier.fillMaxWidth(), minLines = 3, keyboardOptions = SentenceKeyboard,
                 placeholder = { Text(stringResource(R.string.workflow_task)) })
             OutlinedTextField(check, { check = it }, Modifier.fillMaxWidth(), singleLine = true,
                 label = { Text(stringResource(R.string.check_command)) })
