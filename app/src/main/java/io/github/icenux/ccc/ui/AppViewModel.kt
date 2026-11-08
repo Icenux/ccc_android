@@ -707,11 +707,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Answer the terminal's question with option [number], or (null) cancel it with Esc. */
-    fun answerPrompt(number: Int?) {
+    /**
+     * Answer [shown] — the question the person saw — with option [number], or (null) cancel it with Esc. The
+     * screen is read once more first: only when the same question is still there is anything typed (the
+     * screen may have moved on since the last look, and a digit would answer something else).
+     */
+    fun answerPrompt(shown: io.github.icenux.ccc.data.TerminalPrompt, number: Int?) {
         val id = _conversation.value?.id ?: return
         _conversation.update { it?.copy(prompt = null) }
         action { client ->
+            val now = io.github.icenux.ccc.data.TerminalPrompts.detect(client.terminal(id).screen)
+            if (now == null || now.question != shown.question || now.options != shown.options) {
+                _conversation.update { if (it?.id == id) it.copy(prompt = now) else it }
+                _message.value = text(R.string.prompt_changed)
+                return@action
+            }
             if (number != null) client.terminalType(id, number.toString()) else client.terminalKeys(id, listOf("Escape"))
         }
     }

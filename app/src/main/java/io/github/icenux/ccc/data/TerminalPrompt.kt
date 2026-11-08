@@ -4,15 +4,18 @@ package io.github.icenux.ccc.data
 data class PromptOption(val number: Int, val label: String, val selected: Boolean)
 
 /** A question Claude Code asks in its terminal (a permission, a plan, a choice), with the numbered answers. */
-data class TerminalPrompt(val question: String, val options: List<PromptOption>)
+data class TerminalPrompt(val question: String, val options: List<PromptOption>, val truncated: Boolean = false)
 
 /**
  * Finds such a question on a terminal screen. Claude Code's interactive prompts don't go through ccc's
  * approvals, so the app reads them from the screen: a numbered menu with a ❯ on one of the choices, at the
- * bottom (only its footer hint below it). Numbered lists in Claude's answers have no ❯ and are not taken.
+ * bottom, and Claude Code's own dialog around it — a frame (│) or the "Esc to cancel" footer. Numbered lists
+ * in Claude's answers have no ❯ and no dialog, and text that merely looks like a menu is not taken.
  */
 object TerminalPrompts {
-    private val OPTION = Regex("""^\s*([❯›>])?\s*(\d{1,2})[.)]\s+(\S.*)$""")
+    private val OPTION = Regex("""^\s*(❯)?\s*(\d{1,2})[.)]\s+(\S.*)$""")
+    private val FOOTER = Regex("""(?i)esc to (cancel|exit|go back)|enter to (select|confirm)""")
+    private const val QUESTION_LINES = 8
     private const val BOX = "│┃║"
 
     /** A screen line without the frame Claude Code draws around a dialog. */
@@ -20,9 +23,14 @@ object TerminalPrompts {
 
     fun detect(screen: String): TerminalPrompt? {
         val plain = Ansi.parse(screen).joinToString("") { it.text }
-        val lines = plain.lines().map(::clean).dropLastWhile { it.isBlank() }
+        val raw = plain.lines().dropLastWhile { it.isBlank() }
+        val lines = raw.map(::clean)
         val last = lines.indexOfLast { OPTION.matches(it) }
         if (last < 0 || lines.size - 1 - last > 6) return null
+        // Only inside Claude Code's own dialog: a frame around the menu, or its footer hint under it.
+        val framed = raw[last].trim().firstOrNull()?.let { it in BOX } == true
+        val footer = lines.drop(last + 1).any { FOOTER.containsMatchIn(it) }
+        if (!framed && !footer) return null
         // The block of options upwards from the last one; a long label may continue on indented lines.
         var first = last
         while (first > 0) {
@@ -43,11 +51,14 @@ object TerminalPrompts {
         if (options.size < 2 || options.first().number != 1 || options.none { it.selected }) return null
         if (options.map { it.number } != (1..options.size).toList()) return null
         // The question: the lines right above the menu, up to the blank line.
+        var cut = false
         val question = buildList {
             var i = first - 1
             while (i >= 0 && lines[i].isBlank()) i--
-            while (i >= 0 && lines[i].isNotBlank() && size < 4) add(lines[i--].trim())
+            while (i >= 0 && lines[i].isNotBlank() && size < QUESTION_LINES) add(lines[i--].trim())
+            // More of the dialog above than fits: the card says so, the terminal has all of it.
+            cut = i >= 0 && lines[i].isNotBlank() && size >= QUESTION_LINES
         }.asReversed().joinToString(" ").trim()
-        return TerminalPrompt(question, options)
+        return TerminalPrompt(question, options, truncated = cut)
     }
 }

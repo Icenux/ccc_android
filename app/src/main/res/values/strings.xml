@@ -412,4 +412,6 @@
     <string name="jump_to_newest">Jump to the newest</string>
     <string name="prompt_title">Claude Code asks in the terminal</string>
     <string name="prompt_cancel">Cancel (Esc)</string>
+    <string name="prompt_changed">The question changed — look at it again</string>
+    <string name="prompt_truncated">Only part of the question is shown — check the terminal before answering</string>
 </resources>

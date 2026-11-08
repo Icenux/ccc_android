@@ -41,4 +41,22 @@ class TerminalPromptTest {
     fun emptyScreen() {
         assertNull(TerminalPrompts.detect(""))
     }
+
+    @Test
+    fun otherMarkersAreNotTheDialog() {
+        assertNull(TerminalPrompts.detect("Proceed?\n> 1. Yes\n  2. No\n\n  Esc to cancel\n"))
+        assertNull(TerminalPrompts.detect("Proceed?\n› 1. Yes\n  2. No\n\n  Esc to cancel\n"))
+    }
+
+    @Test
+    fun withoutFrameOrFooterItIsNotTheDialog() {
+        assertNull(TerminalPrompts.detect("Proceed?\n❯ 1. Yes\n  2. No\n"))
+    }
+
+    @Test
+    fun longBodyIsMarkedAsCut() {
+        val body = (1..12).joinToString("\n") { "line $it of the command" }
+        val prompt = TerminalPrompts.detect("$body\nProceed?\n❯ 1. Yes\n  2. No\n  Esc to cancel\n")!!
+        assertEquals(true, prompt.truncated)
+    }
 }

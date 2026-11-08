@@ -115,7 +115,7 @@ class ConversationActions(
     val agents: () -> Unit,
     val terminal: () -> Unit,
     /** Answer Claude Code's question in the terminal with option n (null: Esc). */
-    val answerPrompt: (Int?) -> Unit = {},
+    val answerPrompt: (io.github.icenux.ccc.data.TerminalPrompt, Int?) -> Unit = { _, _ -> },
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -584,18 +584,21 @@ private fun WorkingIndicator(modifier: Modifier = Modifier) {
 
 /** Claude Code asks something in its terminal: the question, a button per answer, Esc, and the terminal itself. */
 @Composable
-private fun PromptCard(prompt: io.github.icenux.ccc.data.TerminalPrompt, onAnswer: (Int?) -> Unit, onTerminal: () -> Unit, modifier: Modifier) {
+private fun PromptCard(prompt: io.github.icenux.ccc.data.TerminalPrompt, onAnswer: (io.github.icenux.ccc.data.TerminalPrompt, Int?) -> Unit, onTerminal: () -> Unit, modifier: Modifier) {
     HudPanel(modifier, accent = CccColors.Amber, brackets = false, glow = true, contentPadding = PaddingValues(14.dp)) {
         Text(stringResource(R.string.prompt_title), style = MaterialTheme.typography.titleSmall, color = CccColors.Amber)
         if (prompt.question.isNotBlank()) {
             Spacer(Modifier.height(6.dp))
-            Text(prompt.question, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text)
+            Text((if (prompt.truncated) "… " else "") + prompt.question, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text)
+        }
+        if (prompt.truncated) {
+            Text(stringResource(R.string.prompt_truncated), style = MaterialTheme.typography.labelMedium, color = CccColors.Amber)
         }
         Spacer(Modifier.height(10.dp))
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             prompt.options.forEach { option ->
                 CccButton(
-                    onClick = { onAnswer(option.number) },
+                    onClick = { onAnswer(prompt, option.number) },
                     modifier = Modifier.fillMaxWidth(),
                     kind = if (option.selected) ButtonKind.PRIMARY else ButtonKind.SECONDARY,
                 ) { Text("${option.number}  ${option.label}", maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)) }
@@ -604,7 +607,7 @@ private fun PromptCard(prompt: io.github.icenux.ccc.data.TerminalPrompt, onAnswe
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             CccButton(onClick = onTerminal, kind = ButtonKind.GHOST) { Text(stringResource(R.string.terminal)) }
-            CccButton(onClick = { onAnswer(null) }, kind = ButtonKind.GHOST, color = CccColors.Red) { Text(stringResource(R.string.prompt_cancel)) }
+            CccButton(onClick = { onAnswer(prompt, null) }, kind = ButtonKind.GHOST, color = CccColors.Red) { Text(stringResource(R.string.prompt_cancel)) }
         }
     }
 }
