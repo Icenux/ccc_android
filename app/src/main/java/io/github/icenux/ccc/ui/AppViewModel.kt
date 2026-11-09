@@ -49,14 +49,12 @@ sealed interface Screen {
     data object Setup : Screen
     data object Conversations : Screen
     data class Conversation(val id: Int) : Screen
-    /** A conversation's overview: numbers, what waits for you, runs and commits (the Dashboard's rows open it). */
+    /** A conversation's overview: numbers and what waits for you (the Dashboard's rows open it). */
     data class ConversationDetail(val id: Int) : Screen
     data object Approvals : Screen
     data object NewConversation : Screen
     data object Search : Screen
     data class Tasks(val id: Int) : Screen
-    data class Runs(val id: Int) : Screen
-    data class Diff(val runId: Int) : Screen
     /** A conversation's reviews, goals, workflows and questions; [tab] 0 … 3. */
     data class Agents(val id: Int, val tab: Int = 0) : Screen
     data object Routines : Screen
@@ -159,16 +157,6 @@ data class NewConversationState(
 /** The task queue of conversation [id]. */
 data class TasksState(val id: Int, val tasks: io.github.icenux.ccc.data.Tasks? = null)
 
-data class RunsState(val id: Int, val runs: List<io.github.icenux.ccc.data.Run>? = null)
-
-/** A run's diff and your comments on its lines (index to text), not sent yet. */
-data class DiffState(
-    val runId: Int,
-    val diff: io.github.icenux.ccc.data.Diff? = null,
-    val comments: Map<Int, String> = emptyMap(),
-    val sending: Boolean = false,
-)
-
 data class SearchState(val query: String = "", val hits: List<SearchHit> = emptyList(), val searching: Boolean = false)
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -189,12 +177,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _tasks = MutableStateFlow<TasksState?>(null)
     val tasks: StateFlow<TasksState?> = _tasks.asStateFlow()
-
-    private val _runs = MutableStateFlow<RunsState?>(null)
-    val runs: StateFlow<RunsState?> = _runs.asStateFlow()
-
-    private val _diff = MutableStateFlow<DiffState?>(null)
-    val diff: StateFlow<DiffState?> = _diff.asStateFlow()
 
     private val _search = MutableStateFlow(SearchState())
     val search: StateFlow<SearchState> = _search.asStateFlow()
@@ -375,24 +357,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _tasks.value = TasksState(screen.id)
                 action { reloadTasks(screen.id) }
             }
-            is Screen.Runs -> {
-                _runs.value = RunsState(screen.id)
-                action { reloadRuns(screen.id) }
-            }
-            is Screen.ConversationDetail -> {
-                _runs.value = RunsState(screen.id)
-                action { reloadRuns(screen.id) }
-            }
             is Screen.Agents -> more.openAgents(screen.id)
             Screen.Routines -> more.loadRoutines()
             Screen.Subagents -> more.openSubagents()
             Screen.Analytics -> more.loadAnalytics()
             Screen.CccSettings -> { more.clearSettings(); more.loadSettings() }
             is Screen.Terminal -> more.openTerminal(screen.id, { api }, { foreground && _screens.value.lastOrNull() == screen })
-            is Screen.Diff -> {
-                _diff.value = DiffState(screen.runId)
-                action { client -> _diff.update { it?.copy(diff = client.diff(screen.runId)) } }
-            }
             else -> Unit
         }
     }
@@ -635,7 +605,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch { refresh() }
         _tasks.value?.id?.takeIf { it in changed }?.let { reloadTasks(it) }
-        _runs.value?.id?.takeIf { it in changed }?.let { reloadRuns(it) }
         more.agents.value?.id?.takeIf { it in changed }?.let { more.reloadAgents(it) }
     }
 
@@ -988,46 +957,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun setPaused(value: Boolean) = taskAction { client, id -> client.switches(id, paused = value) }
 
     fun setAutoContinue(value: Boolean) = taskAction { client, id -> client.switches(id, autoContinue = value) }
-
-    // --- runs, diffs, reverts --------------------------------------------------------------------------
-
-    private suspend fun reloadRuns(id: Int) {
-        val client = api ?: return
-        guard {
-            val runs = client.runs(id)
-            _runs.update { if (it?.id == id) it.copy(runs = runs) else it }
-        }
-    }
-
-    fun revert(runId: Int, tell: Boolean) {
-        val id = _runs.value?.id ?: return
-        action { client ->
-            client.revert(runId, tell)
-            _message.value = text(R.string.reverted)
-            reloadRuns(id)
-        }
-    }
-
-    /** A comment on diff line [index]; an empty one takes it away. */
-    fun setComment(index: Int, text: String) {
-        _diff.update { state ->
-            state?.copy(comments = if (text.isBlank()) state.comments - index else state.comments + (index to text.trim()))
-        }
-    }
-
-    fun sendComments() {
-        val state = _diff.value ?: return
-        if (state.comments.isEmpty() || state.sending) return
-        _diff.update { it?.copy(sending = true) }
-        viewModelScope.launch {
-            val sent = guard { api?.comment(state.runId, state.comments) }
-            _diff.update { current -> current?.let { it.copy(sending = false, comments = if (sent) emptyMap() else it.comments) } }
-            if (sent) {
-                _message.value = text(R.string.comments_sent)
-                back()
-            }
-        }
-    }
 
     // --- search ------------------------------------------------------------------------------------
 
