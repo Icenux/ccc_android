@@ -306,39 +306,6 @@ data class Tasks(
     val tasks: List<Task> = emptyList(),
 )
 
-/** One run of a task: status is "success", "rate_limited" or "error". */
-@Serializable
-data class Run(
-    val id: Int,
-    @SerialName("started_at") val startedAt: String? = null,
-    @SerialName("finished_at") val finishedAt: String? = null,
-    val status: String,
-    val tokens: Long = 0,
-    @SerialName("cost_usd") val costUsd: Double = 0.0,
-    @SerialName("duration_ms") val durationMs: Long = 0,
-    val task: String = "",
-    val result: String? = null,
-    val error: String? = null,
-    val commit: String? = null,
-    @SerialName("git_note") val gitNote: String? = null,
-    @SerialName("reverted_by") val revertedBy: String? = null,
-)
-
-/** A diff line: kind is "header", "meta", "hunk", "added", "removed" or "context". */
-@Serializable
-data class DiffLine(
-    val index: Int,
-    val text: String,
-    val kind: String,
-    val path: String? = null,
-    @SerialName("old_line") val oldLine: Int? = null,
-    @SerialName("new_line") val newLine: Int? = null,
-    val commentable: Boolean = false,
-)
-
-@Serializable
-data class Diff(val commit: String, val task: String = "", val lines: List<DiffLine> = emptyList())
-
 @Serializable
 data class Change(
     val conversations: List<Int> = emptyList(),

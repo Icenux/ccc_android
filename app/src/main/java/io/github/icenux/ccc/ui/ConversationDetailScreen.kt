@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import io.github.icenux.ccc.R
 import io.github.icenux.ccc.data.Conversation
 import io.github.icenux.ccc.data.Permission
-import io.github.icenux.ccc.data.Run
 import io.github.icenux.ccc.data.shortPath
 import io.github.icenux.ccc.ui.theme.CccColors
 import io.github.icenux.ccc.ui.theme.CccFonts
@@ -47,17 +46,15 @@ class DetailActions(
     val back: () -> Unit,
     val chat: () -> Unit,
     val queue: () -> Unit,
-    val runs: () -> Unit,
     val goal: () -> Unit,
     val decide: (Permission, String) -> Unit,
 )
 
-/** A conversation at a glance: its state and numbers, what waits for you, the latest runs and what changed. */
+/** A conversation at a glance: its state and numbers, what waits for you and what changed. */
 @Composable
 fun ConversationDetailScreen(
     conversation: Conversation?,
     permissions: List<Permission>,
-    runs: RunsState?,
     snackbar: SnackbarHostState,
     actions: DetailActions,
 ) {
@@ -70,7 +67,6 @@ fun ConversationDetailScreen(
             }
             val state = conversation.state
             val color = statusColor(state, conversation.needsApproval)
-            val list = runs?.runs.orEmpty()
             LazyColumn(
                 Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
@@ -104,8 +100,6 @@ fun ConversationDetailScreen(
                         Divider()
                         DetailStat(conversation.pending.toString(), stringResource(R.string.stat_queued), Modifier.weight(1f))
                         Divider()
-                        DetailStat(runs?.runs?.size?.toString() ?: "–", stringResource(R.string.detail_runs), Modifier.weight(1f))
-                        Divider()
                         conversation.context?.let { context ->
                             DetailStat(context.text, stringResource(R.string.detail_context), Modifier.weight(1f), contextColor(context))
                             Divider()
@@ -134,28 +128,6 @@ fun ConversationDetailScreen(
                                     )
                                 }
                                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = CccColors.Faint)
-                            }
-                        }
-                    }
-                }
-                item(key = "runs-heading") {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.runs), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, color = CccColors.Text)
-                        Text(
-                            stringResource(R.string.detail_view_all),
-                            Modifier.clickable(onClick = actions.runs).padding(vertical = 4.dp),
-                            style = MaterialTheme.typography.labelLarge, color = CccColors.Cyan,
-                        )
-                    }
-                }
-                item(key = "runs") {
-                    when {
-                        runs?.runs == null -> ShimmerBlock(height = 120.dp)
-                        list.isEmpty() -> Text(stringResource(R.string.runs_empty), color = CccColors.Muted, modifier = Modifier.padding(8.dp))
-                        else -> HudPanel(brackets = false, accent = CccColors.Line, contentPadding = PaddingValues(0.dp)) {
-                            list.take(3).forEachIndexed { i, run ->
-                                if (i > 0) HorizontalDivider(color = CccColors.Line)
-                                RunLine(run, Modifier.clickable(onClick = actions.runs))
                             }
                         }
                     }
@@ -199,7 +171,7 @@ private fun DetailStat(value: String, label: String, modifier: Modifier, color: 
     }
 }
 
-/** Chat | Queue | Runs: the first is lit (this overview is the chat's front page); the others go to their screens. */
+/** Chat | Queue: the first is lit (this overview is the chat's front page); the others go to their screens. */
 @Composable
 private fun DetailTabs(actions: DetailActions) {
     val shape = RoundedCornerShape(6.dp)
@@ -210,7 +182,6 @@ private fun DetailTabs(actions: DetailActions) {
         listOf(
             Triple(R.string.nav_chats, true, actions.chat),
             Triple(R.string.detail_tab_queue, false, actions.queue),
-            Triple(R.string.detail_tab_runs, false, actions.runs),
         ).forEach { (label, on, go) ->
             Box(
                 Modifier
@@ -223,29 +194,6 @@ private fun DetailTabs(actions: DetailActions) {
             ) {
                 Text(stringResource(label), style = MaterialTheme.typography.labelLarge, color = if (on) CccColors.Background else CccColors.Dim)
             }
-        }
-    }
-}
-
-@Composable
-private fun RunLine(run: Run, modifier: Modifier) {
-    val (mark, color) = when (run.status) {
-        "success" -> "✓" to (if (run.revertedBy != null) CccColors.Blue else CccColors.Cyan)
-        "rate_limited" -> "!" to CccColors.Amber
-        else -> "✕" to CccColors.Red
-    }
-    Row(modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(38.dp).background(color.copy(alpha = 0.12f), RoundedCornerShape(5.dp)),
-            contentAlignment = Alignment.Center,
-        ) { Text(mark, color = color, style = MaterialTheme.typography.titleMedium, fontFamily = CccFonts.Mono) }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(run.task.ifBlank { "—" }, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                listOfNotNull(run.commit?.take(7), shortTime(run.finishedAt ?: run.startedAt)).joinToString(" · "),
-                style = MaterialTheme.typography.labelMedium, color = CccColors.Faint, maxLines = 1,
-            )
         }
     }
 }

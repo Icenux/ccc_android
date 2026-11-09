@@ -111,7 +111,6 @@ class ConversationActions(
     val usePreset: (PromptPreset, (String) -> Unit) -> Unit,
     val mention: (String?) -> Unit,
     val tasks: () -> Unit,
-    val runs: () -> Unit,
     val agents: () -> Unit,
     val terminal: () -> Unit,
     /** Answer Claude Code's question in the terminal with option n (null: Esc). */
@@ -184,8 +183,6 @@ fun ConversationScreen(
                             }
                             DropdownMenuItem(text = { Text(stringResource(R.string.tasks) + " (${detail.pending})") },
                                 onClick = { menu = false; actions.tasks() })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.runs)) },
-                                onClick = { menu = false; actions.runs() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.agents)) },
                                 onClick = { menu = false; actions.agents() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.group_put)) },

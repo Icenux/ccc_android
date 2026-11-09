@@ -44,8 +44,6 @@ import io.github.icenux.ccc.ui.ConversationActions
 import io.github.icenux.ccc.ui.ConversationScreen
 import io.github.icenux.ccc.ui.ConversationsActions
 import io.github.icenux.ccc.ui.ConversationsScreen
-import io.github.icenux.ccc.ui.DiffScreen
-import io.github.icenux.ccc.ui.RunsScreen
 import io.github.icenux.ccc.ui.TasksActions
 import io.github.icenux.ccc.ui.TasksScreen
 import io.github.icenux.ccc.ui.Screen
@@ -113,8 +111,6 @@ private fun App(model: AppViewModel) {
     val search by model.search.collectAsStateWithLifecycle()
     val share by model.share.collectAsStateWithLifecycle()
     val tasks by model.tasks.collectAsStateWithLifecycle()
-    val runs by model.runs.collectAsStateWithLifecycle()
-    val diff by model.diff.collectAsStateWithLifecycle()
     val agents by model.more.agents.collectAsStateWithLifecycle()
     val routines by model.more.routines.collectAsStateWithLifecycle()
     val subagents by model.more.subagents.collectAsStateWithLifecycle()
@@ -280,7 +276,6 @@ private fun App(model: AppViewModel) {
                     usePreset = model::usePreset,
                     mention = model::mention,
                     tasks = { model.open(Screen.Tasks(screen.id)) },
-                    runs = { model.open(Screen.Runs(screen.id)) },
                     agents = { model.open(Screen.Agents(screen.id)) },
                     terminal = { model.open(Screen.Terminal(screen.id)) },
                     answerPrompt = model::answerPrompt,
@@ -301,25 +296,6 @@ private fun App(model: AppViewModel) {
                     paused = model::setPaused,
                     autoContinue = model::setAutoContinue,
                 ),
-            )
-        }
-        is Screen.Runs -> runs?.takeIf { it.id == screen.id }?.let {
-            RunsScreen(
-                state = it,
-                name = nameOf(screen.id),
-                snackbar = snackbar,
-                onBack = model::back,
-                onDiff = { run -> model.open(Screen.Diff(run)) },
-                onRevert = model::revert,
-            )
-        }
-        is Screen.Diff -> diff?.takeIf { it.runId == screen.runId }?.let {
-            DiffScreen(
-                state = it,
-                snackbar = snackbar,
-                onBack = model::back,
-                onComment = model::setComment,
-                onSend = model::sendComments,
             )
         }
         is Screen.Agents -> agents?.takeIf { it.id == screen.id }?.let {
@@ -425,13 +401,11 @@ private fun App(model: AppViewModel) {
         is Screen.ConversationDetail -> ConversationDetailScreen(
             conversation = (home.conversations + home.archived).firstOrNull { it.id == screen.id },
             permissions = home.permissions.filter { it.conversationId == screen.id },
-            runs = runs?.takeIf { it.id == screen.id },
             snackbar = snackbar,
             actions = DetailActions(
                 back = model::back,
                 chat = { model.open(Screen.Conversation(screen.id)) },
                 queue = { model.open(Screen.Tasks(screen.id)) },
-                runs = { model.open(Screen.Runs(screen.id)) },
                 goal = { model.open(Screen.Agents(screen.id, 1)) },
                 decide = model::decide,
             ),

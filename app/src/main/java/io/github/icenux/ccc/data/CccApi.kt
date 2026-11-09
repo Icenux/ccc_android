@@ -159,23 +159,6 @@ class CccApi(
                 autoContinue?.let { "auto_continue" to JsonPrimitive(it) }).toTypedArray()),
         )
 
-    suspend fun runs(id: Int): List<Run> = get("conversations/$id/runs")
-
-    suspend fun diff(runId: Int): Diff = get("runs/$runId/diff")
-
-    /** Comments on diff lines (index to text), sent to Claude as one task. */
-    suspend fun comment(runId: Int, comments: Map<Int, String>) {
-        val list = JsonArray(comments.entries.sortedBy { it.key }.map { (index, text) ->
-            JsonObject(mapOf("index" to JsonPrimitive(index), "text" to JsonPrimitive(text)))
-        })
-        post<Unit>("runs/$runId/comments", body("comments" to list))
-    }
-
-    /** Undo the run's commit (a new commit); [tell] queues a note for Claude. */
-    suspend fun revert(runId: Int, tell: Boolean) {
-        post<Unit>("runs/$runId/revert", body("tell" to JsonPrimitive(tell)))
-    }
-
     // --- reviews, goals, workflows, questions ----------------------------------------------
 
     suspend fun reviews(id: Int): Reviews = get("conversations/$id/reviews")

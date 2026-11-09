@@ -184,24 +184,6 @@
     <string name="move_up">Nahoru</string>
     <string name="move_down">Dolů</string>
     <string name="edit">Upravit</string>
-    <string name="runs">Běhy a commity</string>
-    <string name="runs_empty">Zatím žádné běhy.</string>
-    <string name="run_success">hotovo</string>
-    <string name="run_rate_limited">limit využití</string>
-    <string name="run_error">chyba</string>
-    <string name="diff_show">Diff</string>
-    <string name="diff_title">Commit %1$s</string>
-    <string name="revert">Vrátit</string>
-    <string name="revert_title">Vrátit běh</string>
-    <string name="revert_text">Vrátit commit %1$s úkolu „%2$s“? ccc udělá nový commit, který ho vrátí — nic se nepřepisuje a i vrácení jde vrátit.</string>
-    <string name="revert_tell">Dát vědět Claudovi (zařadit krátkou poznámku)</string>
-    <string name="reverted">Vráceno.</string>
-    <string name="comment_hint">Tvůj komentář pro Clauda</string>
-    <string name="comments_send">Poslat komentáře Claudovi (%1$d)</string>
-    <string name="comments_sent">Komentáře zařazeny pro Clauda.</string>
-    <string name="comments_discard">Zahodit komentáře?</string>
-    <string name="comments_discard_text">Komentáře (%1$d) ještě nejsou poslané Claudovi. Zavřít a přijít o ně?</string>
-    <string name="discard">Zahodit</string>
 
     <!-- Kolo 3: agenti, rutiny, živé relace, analytika, nastavení -->
     <string name="add">Přidat</string>
@@ -428,11 +410,8 @@
     <string name="queue_for_conversation">Konverzace</string>
     <string name="new_required">povinné</string>
     <string name="new_optional">volitelné</string>
-    <string name="detail_runs">běhy</string>
     <string name="detail_changes">změny</string>
-    <string name="detail_view_all">Zobrazit vše</string>
     <string name="detail_tab_queue">Fronta</string>
-    <string name="detail_tab_runs">Běhy</string>
     <string name="goal_check_output">Výstup kontroly</string>
     <string name="goal_following">sleduji</string>
     <string name="goal_round_of">kolo %1$d z %2$d</string>
