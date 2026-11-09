@@ -39,4 +39,13 @@ class AlertsTest {
         assertEquals(setOf("u:a1b2c3d"), Alerts.changes(emptyList(), emptyList(), setOf("u:a1b2c3d"), UpdateInfo()).gone)
         assertEquals(emptyList<Alert>(), Alerts.changes(emptyList(), emptyList(), emptySet(), UpdateInfo(available = true)).show)
     }
+
+    @Test
+    fun `kinds switched off in the settings are not shown`() {
+        val kinds = setOf(AlertKind.APPROVAL)
+        val changes = Alerts.changes(listOf(bash), listOf(error), emptySet(), kinds = kinds)
+        assertEquals(listOf<Alert>(Alert.Approval(bash)), changes.show)
+        // Switched off while shown: it is taken away.
+        assertEquals(setOf("w:3:error"), Alerts.changes(emptyList(), listOf(error), setOf("w:3:error"), kinds = kinds).gone)
+    }
 }

@@ -448,4 +448,17 @@
     <string name="overview_errors">Chyby</string>
     <string name="overview_no_errors">Žádné selhané běhy.</string>
     <string name="overview_failed">Selhané běhy za posledních %2$d dní: %1$d</string>
+    <string name="phone_notifications">Tento telefon</string>
+    <string name="alert_kinds_hint">Které notifikace tento telefon dostává.</string>
+    <string name="alert_kind_approval">Schválení</string>
+    <string name="alert_kind_done">Mise splněna</string>
+    <string name="alert_kind_error">Chyby</string>
+    <string name="alert_kind_limit">Došlo palivo (limit)</string>
+    <string name="alert_kind_update">Aktualizace ccc</string>
+    <string name="persistent_notification">Trvalé oznámení</string>
+    <string name="persistent_notification_hint">Zůstává v panelu a ukazuje využití limitu, počet konverzací a kolik jich čeká na tebe.</string>
+    <string name="persistent_limit_5h">5 h %1$d %%</string>
+    <string name="persistent_limit_7d">7 d %1$d %%</string>
+    <string name="persistent_limit_unknown">Limit neznámý</string>
+    <string name="persistent_counts">%1$d konverzací · %2$d čeká na tebe</string>
 </resources>
