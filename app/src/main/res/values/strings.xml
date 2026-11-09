@@ -450,4 +450,17 @@
     <string name="overview_errors">Errors</string>
     <string name="overview_no_errors">No failed runs.</string>
     <string name="overview_failed">%1$d failed run(s) in the last %2$d days</string>
+    <string name="phone_notifications">This phone</string>
+    <string name="alert_kinds_hint">Which notifications this phone gets.</string>
+    <string name="alert_kind_approval">Approvals</string>
+    <string name="alert_kind_done">Mission accomplished</string>
+    <string name="alert_kind_error">Errors</string>
+    <string name="alert_kind_limit">Out of fuel (limit)</string>
+    <string name="alert_kind_update">ccc updates</string>
+    <string name="persistent_notification">Lasting notification</string>
+    <string name="persistent_notification_hint">Stays in the shade and shows the usage limit, the number of conversations and how many need you.</string>
+    <string name="persistent_limit_5h">5 h %1$d %%</string>
+    <string name="persistent_limit_7d">7 d %1$d %%</string>
+    <string name="persistent_limit_unknown">Limit unknown</string>
+    <string name="persistent_counts">%1$d conversations · %2$d need you</string>
 </resources>

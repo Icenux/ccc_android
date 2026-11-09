@@ -122,6 +122,8 @@ private fun App(model: AppViewModel) {
     val cccSettings by model.more.settings.collectAsStateWithLifecycle()
     val terminal by model.more.terminal.collectAsStateWithLifecycle()
     val notifications by model.notifications.collectAsStateWithLifecycle()
+    val alertKinds by model.alertKinds.collectAsStateWithLifecycle()
+    val persistent by model.persistent.collectAsStateWithLifecycle()
     val listDetails by model.listDetails.collectAsStateWithLifecycle()
     val appUpdate by model.appUpdate.collectAsStateWithLifecycle()
     val updateOutcome by model.updateOutcome.collectAsStateWithLifecycle()
@@ -375,6 +377,8 @@ private fun App(model: AppViewModel) {
             language = model.language,
             onLanguage = { model.setLanguage(it); (context as? android.app.Activity)?.recreate() },
             notifications = notifications,
+            alertKinds = alertKinds,
+            persistent = persistent,
             effects = effects,
             state = cccSettings,
             presets = home.promptPresets,
@@ -388,6 +392,8 @@ private fun App(model: AppViewModel) {
                 backup = { model.more.backup(context.getString(R.string.backed_up)) },
                 connection = { model.open(Screen.Setup) },
                 notifications = model::setNotifications,
+                alertKinds = model::setAlertKinds,
+                persistent = model::setPersistent,
                 effects = model::setEffects,
             ),
         )

@@ -214,6 +214,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         WatchService.sync(getApplication())
     }
 
+    private val _alertKinds = MutableStateFlow(settings.alertKinds)
+    /** Which kinds of notification to get (AlertKind keys). */
+    val alertKinds: StateFlow<Set<String>> = _alertKinds.asStateFlow()
+
+    fun setAlertKinds(kinds: Set<String>) {
+        settings.alertKinds = kinds
+        _alertKinds.value = kinds
+    }
+
+    private val _persistent = MutableStateFlow(settings.persistent)
+    /** The lasting notification with usage and conversation counts. */
+    val persistent: StateFlow<Boolean> = _persistent.asStateFlow()
+
+    fun setPersistent(on: Boolean) {
+        settings.persistent = on
+        _persistent.value = on
+        WatchService.sync(getApplication())
+    }
+
     /** Asked once after sign-in (the system dialog); false again after sign-out. */
     var notificationsAsked: Boolean
         get() = settings.notificationsAsked

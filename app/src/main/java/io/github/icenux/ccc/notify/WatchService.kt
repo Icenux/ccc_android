@@ -31,6 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.math.roundToInt
 
 /**
  * Keeps ccc's event stream open while the app is closed and turns what
@@ -48,19 +49,7 @@ class WatchService : Service() {
     override fun onCreate() {
         super.onCreate()
         channels(this)
-        val watching = NotificationCompat.Builder(this, CHANNEL_WATCH)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setLargeIcon(largeIcon(this))
-            .setContentTitle(getString(R.string.watch_title))
-            .setContentText(getString(R.string.watch_text))
-            .setContentIntent(openApp(this, null))
-            .setOngoing(true)
-            .setSilent(true)
-            .setOnlyAlertOnce(true)
-            .setShowWhen(false)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .build()
+        val watching = watching(this, null)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(WATCH_ID, watching, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
@@ -71,7 +60,11 @@ class WatchService : Service() {
 
     override fun attachBaseContext(newBase: Context) = super.attachBaseContext(io.github.icenux.ccc.data.Language.wrap(newBase))
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Started again when a setting changed (the lasting notification on / off): show it at once.
+        scope.launch { refreshWatching() }
+        return START_STICKY
+    }
 
     override fun onDestroy() {
         scope.cancel()
@@ -107,17 +100,46 @@ class WatchService : Service() {
     }
 
     private suspend fun check(api: CccApi, settings: Settings) = checking.withLock {
-        var changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update)
+        val kinds = settings.alertKinds
+        var changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update, kinds)
         if (changes.show.isNotEmpty()) {
             // A conversation open in the computer's TUI is marked seen within moments: look again before notifying,
             // so what you are looking at never reaches the phone (not even for a flash).
             delay(SETTLE_MS)
-            changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update)
+            changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update, kinds)
         }
         val manager = NotificationManagerCompat.from(this)
         changes.gone.forEach { manager.cancel(it, ALERT_ID) }
         changes.show.forEach { post(this, it) }
         settings.shownAlerts = settings.shownAlerts - changes.gone + changes.show.map { it.key }
+        refreshWatching(api)
+    }
+
+    /** The always-there notification: plain, or (as chosen) with the usage and the conversation counts. */
+    private suspend fun refreshWatching(api: CccApi? = null) {
+        val settings = Settings(this)
+        val stats = if (settings.persistent && settings.configured) {
+            try {
+                val client = api ?: CccApi(settings.server, settings.token)
+                val usage = try { client.usage() } catch (e: ApiException) { null }
+                val status = client.status()
+                val needYou = client.waiting().size
+                val limit = listOfNotNull(
+                    usage?.fiveHour?.let { getString(R.string.persistent_limit_5h, it.percent.roundToInt()) },
+                    usage?.sevenDay?.let { getString(R.string.persistent_limit_7d, it.percent.roundToInt()) },
+                ).joinToString(" · ").ifEmpty { getString(R.string.persistent_limit_unknown) }
+                getString(R.string.persistent_counts, status.conversations, needYou) to limit
+            } catch (e: IOException) {
+                return
+            }
+        } else {
+            null
+        }
+        try {
+            NotificationManagerCompat.from(this).notify(WATCH_ID, watching(this, stats))
+        } catch (e: SecurityException) {
+            // Notifications aren't allowed (Android 13+): nothing to show.
+        }
     }
 
     companion object {
@@ -138,6 +160,27 @@ class WatchService : Service() {
             } else {
                 context.stopService(intent)
             }
+        }
+
+        /** The lasting "watching" notification; [stats] = (counts, limit) for the lasting one with numbers. */
+        fun watching(context: Context, stats: Pair<String, String>?): Notification {
+            val builder = NotificationCompat.Builder(context, CHANNEL_WATCH)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setLargeIcon(largeIcon(context))
+                .setContentIntent(openApp(context, null))
+                .setOngoing(true)
+                .setSilent(true)
+                .setOnlyAlertOnce(true)
+                .setShowWhen(false)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+            if (stats == null) {
+                builder.setContentTitle(context.getString(R.string.watch_title))
+                    .setContentText(context.getString(R.string.watch_text))
+            } else {
+                builder.setContentTitle(stats.second).setContentText(stats.first)
+            }
+            return builder.build()
         }
 
         /** The app's launcher icon as the notification's large icon (the small one is only a white glyph). */

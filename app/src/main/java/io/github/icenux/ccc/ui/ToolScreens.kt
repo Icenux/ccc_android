@@ -69,6 +69,7 @@ import io.github.icenux.ccc.data.Analytics
 import io.github.icenux.ccc.data.CccSettings
 import io.github.icenux.ccc.data.Conversation
 import io.github.icenux.ccc.data.LiveSession
+import io.github.icenux.ccc.data.AlertKind
 import io.github.icenux.ccc.data.NotifyCategory
 import io.github.icenux.ccc.data.PromptPreset
 import io.github.icenux.ccc.data.Routine
@@ -358,6 +359,8 @@ class SettingsActions(
     val backup: () -> Unit,
     val connection: () -> Unit,
     val notifications: (Boolean) -> Unit = {},
+    val alertKinds: (Set<String>) -> Unit = {},
+    val persistent: (Boolean) -> Unit = {},
     val effects: (Boolean) -> Unit = {},
 )
 
@@ -372,6 +375,8 @@ fun CccSettingsScreen(
     language: String = "",
     onLanguage: (String) -> Unit = {},
     notifications: Boolean = false,
+    alertKinds: Set<String> = AlertKind.DEFAULT,
+    persistent: Boolean = false,
     effects: Boolean = true,
 ) {
     Scaffold(
@@ -437,6 +442,25 @@ fun CccSettingsScreen(
                     OutlinedTextField(continueText, { continueText = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.continue_text)) })
                     Picker(stringResource(R.string.usage_reserve), reserve, listOf("" to off) + state.reserveChoices.map { "$it" to "$it %" }) { reserve = it }
                     Picker(stringResource(R.string.review_model), reviewModel, state.reviewModels.map { it.value to it.label }) { reviewModel = it }
+                }
+            }
+            if (tab == 2) item {
+                Section(stringResource(R.string.phone_notifications)) {
+                    SettingsSwitch(stringResource(R.string.notifications_on_short), notifications, actions.notifications)
+                    Text(stringResource(R.string.alert_kinds_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
+                    listOf(
+                        AlertKind.APPROVAL to R.string.alert_kind_approval,
+                        AlertKind.DONE to R.string.alert_kind_done,
+                        AlertKind.ERROR to R.string.alert_kind_error,
+                        AlertKind.LIMIT to R.string.alert_kind_limit,
+                        AlertKind.UPDATE to R.string.alert_kind_update,
+                    ).forEach { (key, label) ->
+                        SettingsSwitch(stringResource(label), key in alertKinds) { on ->
+                            actions.alertKinds(if (on) alertKinds + key else alertKinds - key)
+                        }
+                    }
+                    SettingsSwitch(stringResource(R.string.persistent_notification), persistent, actions.persistent)
+                    Text(stringResource(R.string.persistent_notification_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
                 }
             }
             if (tab == 2) item {

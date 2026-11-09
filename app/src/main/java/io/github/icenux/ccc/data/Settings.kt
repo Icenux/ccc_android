@@ -18,6 +18,16 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(NOTIFICATIONS, false)
         set(value) = prefs.edit().putBoolean(NOTIFICATIONS, value).apply()
 
+    /** Which kinds of notification to get (AlertKind keys); all by default. */
+    var alertKinds: Set<String>
+        get() = prefs.getStringSet(ALERT_KINDS, null)?.toSet() ?: AlertKind.DEFAULT
+        set(value) = prefs.edit().putStringSet(ALERT_KINDS, value).apply()
+
+    /** A lasting notification with the usage, the number of conversations and those that need you. */
+    var persistent: Boolean
+        get() = prefs.getBoolean(PERSISTENT, false)
+        set(value) = prefs.edit().putBoolean(PERSISTENT, value).apply()
+
     /** Whether the system notification-permission dialog was already shown after sign-in (asked once). */
     var notificationsAsked: Boolean
         get() = prefs.getBoolean(NOTIFICATIONS_ASKED, false)
@@ -59,6 +69,8 @@ class Settings(context: Context) {
         const val TOKEN = "token"
         const val NOTIFICATIONS = "notifications"
         const val NOTIFICATIONS_ASKED = "notifications_asked"
+        const val ALERT_KINDS = "alert_kinds"
+        const val PERSISTENT = "persistent"
         const val SHOWN = "shown_alerts"
         const val LIST_DETAILS = "list_details"
         const val LANGUAGE = "language"
