@@ -107,7 +107,13 @@ class WatchService : Service() {
     }
 
     private suspend fun check(api: CccApi, settings: Settings) = checking.withLock {
-        val changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update)
+        var changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update)
+        if (changes.show.isNotEmpty()) {
+            // A conversation open in the computer's TUI is marked seen within moments: look again before notifying,
+            // so what you are looking at never reaches the phone (not even for a flash).
+            delay(SETTLE_MS)
+            changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update)
+        }
         val manager = NotificationManagerCompat.from(this)
         changes.gone.forEach { manager.cancel(it, ALERT_ID) }
         changes.show.forEach { post(this, it) }
@@ -118,6 +124,7 @@ class WatchService : Service() {
         const val CHANNEL_WATCH = "watch"
         const val CHANNEL_APPROVALS = "approvals"
         const val CHANNEL_NEEDS_YOU = "needs_you"
+        const val SETTLE_MS = 4_000L
         const val WATCH_ID = 1
         const val ALERT_ID = 2
         const val EXTRA_CONVERSATION = "conversation"
@@ -195,7 +202,12 @@ class WatchService : Service() {
                     .setAutoCancel(true)
                 is Alert.NeedsYou -> NotificationCompat.Builder(context, CHANNEL_NEEDS_YOU)
                     .setContentTitle(alert.waiting.name)
-                    .setContentText(alert.waiting.label)
+                    .setContentText(when (alert.waiting.kind) {
+                        "done" -> context.getString(R.string.waiting_done)
+                        "error" -> context.getString(R.string.waiting_error)
+                        "limit" -> context.getString(R.string.waiting_limit)
+                        else -> alert.waiting.label
+                    })
                     .setContentIntent(openApp(context, alert.waiting.conversationId))
                     .setAutoCancel(true)
             }

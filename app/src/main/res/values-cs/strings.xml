@@ -359,6 +359,9 @@
     <string name="channel_approvals">Schválení</string>
     <string name="channel_needs_you">Konverzace, které tě potřebují</string>
     <string name="channel_watch">Hlídání (stále zapnuté)</string>
+    <string name="waiting_error">Error</string>
+    <string name="waiting_limit">Došlo palivo</string>
+    <string name="waiting_done">Mise splněna</string>
     <string name="approval_waiting">Čeká na tebe schválení</string>
 
     <!-- Redesign: sci-fi HUD, spodní lišta a postranní menu (#13) -->

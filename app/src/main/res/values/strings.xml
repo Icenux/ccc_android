@@ -361,6 +361,9 @@
     <string name="channel_approvals">Approvals</string>
     <string name="channel_needs_you">Conversations that need you</string>
     <string name="channel_watch">Watching (always on)</string>
+    <string name="waiting_error">Error</string>
+    <string name="waiting_limit">Out of fuel</string>
+    <string name="waiting_done">Mission accomplished</string>
     <string name="approval_waiting">An approval waits for you</string>
 
     <!-- Redesign: sci-fi HUD, bottom bar and side menu (#13) -->
