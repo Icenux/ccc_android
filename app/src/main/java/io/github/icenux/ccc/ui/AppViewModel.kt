@@ -214,6 +214,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         WatchService.sync(getApplication())
     }
 
+    /** Asked once after sign-in (the system dialog); false again after sign-out. */
+    var notificationsAsked: Boolean
+        get() = settings.notificationsAsked
+        set(value) { settings.notificationsAsked = value }
+
     private val _listDetails = MutableStateFlow(settings.listDetails)
     /** What a conversation's row shows (data.ListDetail), kept on the phone. */
     val listDetails: StateFlow<Set<String>> = _listDetails.asStateFlow()

@@ -20,6 +20,9 @@ class ApprovalReceiver : BroadcastReceiver() {
         val key = intent.getStringExtra(EXTRA_KEY) ?: return
         val settings = Settings(context)
         if (id < 0 || !settings.configured) return
+        // Allowing runs a command on the computer: never from a locked phone (Deny is always safe).
+        val keyguard = context.getSystemService(android.app.KeyguardManager::class.java)
+        if (decision == "allow" && keyguard?.isDeviceLocked == true) return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
