@@ -106,6 +106,7 @@ private fun App(model: AppViewModel) {
     val deviceHistory by model.deviceHistory.collectAsStateWithLifecycle()
     val invite by model.invite.collectAsStateWithLifecycle()
     val conversation by model.conversation.collectAsStateWithLifecycle()
+    val overview by model.overview.collectAsStateWithLifecycle()
     val newConversation by model.newConversation.collectAsStateWithLifecycle()
     val message by model.message.collectAsStateWithLifecycle()
     val search by model.search.collectAsStateWithLifecycle()
@@ -401,6 +402,7 @@ private fun App(model: AppViewModel) {
         is Screen.ConversationDetail -> ConversationDetailScreen(
             conversation = (home.conversations + home.archived).firstOrNull { it.id == screen.id },
             permissions = home.permissions.filter { it.conversationId == screen.id },
+            overview = overview?.takeIf { it.id == screen.id }?.overview,
             snackbar = snackbar,
             actions = DetailActions(
                 back = model::back,

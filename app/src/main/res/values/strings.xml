@@ -430,4 +430,21 @@
     <string name="prompt_cancel">Cancel (Esc)</string>
     <string name="prompt_changed">The question changed — look at it again</string>
     <string name="prompt_truncated">Only part of the question is shown — check the terminal before answering</string>
+    <string name="overview_now">Now</string>
+    <string name="overview_queued">%d queued</string>
+    <string name="overview_next_retry">Next retry %s</string>
+    <string name="overview_no_activity">No activity yet.</string>
+    <string name="overview_kind_you">you</string>
+    <string name="overview_kind_tool">tool</string>
+    <string name="overview_kind_result">result</string>
+    <string name="overview_no_git">Not shown: ccc reads git only in a git folder, in conversations started with “Skip all permission checks”.</string>
+    <string name="overview_no_changes">No uncommitted changes.</string>
+    <string name="overview_file_new">new</string>
+    <string name="overview_file_binary">binary</string>
+    <string name="overview_more_files">… and more files</string>
+    <string name="overview_usage">Usage · 14 days</string>
+    <string name="overview_usage_totals">Today %1$s tokens · all time %2$s</string>
+    <string name="overview_errors">Errors</string>
+    <string name="overview_no_errors">No failed runs.</string>
+    <string name="overview_failed">%1$d failed run(s) in the last %2$d days</string>
 </resources>

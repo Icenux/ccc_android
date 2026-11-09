@@ -157,6 +157,9 @@ data class NewConversationState(
 /** The task queue of conversation [id]. */
 data class TasksState(val id: Int, val tasks: io.github.icenux.ccc.data.Tasks? = null)
 
+/** The overview of conversation [id] (null until loaded; [failed] when this ccc does not know it). */
+data class OverviewState(val id: Int, val overview: io.github.icenux.ccc.data.Overview? = null, val failed: Boolean = false)
+
 data class SearchState(val query: String = "", val hits: List<SearchHit> = emptyList(), val searching: Boolean = false)
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -177,6 +180,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _tasks = MutableStateFlow<TasksState?>(null)
     val tasks: StateFlow<TasksState?> = _tasks.asStateFlow()
+
+    private val _overview = MutableStateFlow<OverviewState?>(null)
+    val overview: StateFlow<OverviewState?> = _overview.asStateFlow()
 
     private val _search = MutableStateFlow(SearchState())
     val search: StateFlow<SearchState> = _search.asStateFlow()
@@ -356,6 +362,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             is Screen.Tasks -> {
                 _tasks.value = TasksState(screen.id)
                 action { reloadTasks(screen.id) }
+            }
+            is Screen.ConversationDetail -> {
+                _overview.value = OverviewState(screen.id)
+                action { reloadOverview(screen.id) }
             }
             is Screen.Agents -> more.openAgents(screen.id)
             Screen.Routines -> more.loadRoutines()
@@ -605,6 +615,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
         viewModelScope.launch { refresh() }
         _tasks.value?.id?.takeIf { it in changed }?.let { reloadTasks(it) }
+        _overview.value?.id?.takeIf { it in changed }?.let { reloadOverview(it) }
         more.agents.value?.id?.takeIf { it in changed }?.let { more.reloadAgents(it) }
     }
 
@@ -926,6 +937,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val files = runCatching { client.files(state.id, query) }.getOrDefault(emptyList())
             _conversation.update { if (it?.id == state.id) it.copy(mentions = files) else it }
         }
+    }
+
+    // --- the overview -----------------------------------------------------------------------------------------
+
+    private suspend fun reloadOverview(id: Int) {
+        val client = api ?: return
+        // Not through guard {}: an older ccc has no overview, which is no error to show, the screen just
+        // keeps what the list knows.
+        runCatching { client.overview(id) }
+            .onSuccess { overview -> _overview.update { if (it?.id == id) it.copy(overview = overview, failed = false) else it } }
+            .onFailure { _overview.update { state -> if (state?.id == id && state.overview == null) state.copy(failed = true) else state } }
     }
 
     // --- the task queue --------------------------------------------------------------------------------

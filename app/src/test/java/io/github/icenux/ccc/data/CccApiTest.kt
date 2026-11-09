@@ -426,4 +426,44 @@ class CccApiTest {
         assertEquals("/api/v1/agents/project/reviewer?path=%2Fp", seen.single().uri)
         assertTrue(Subagent.addressable("code-reviewer") && Subagent.addressable("a.b_c-1") && !Subagent.addressable("a/b"))
     }
+
+    @Test
+    fun `reads the overview of a conversation and falls back for what an older ccc leaves out`() = runBlocking {
+        answers["conversations/3/overview"] = 200 to """{
+            "now": {"state": "working", "state_label": "Working", "pending": 2,
+                    "last_event": {"kind": "tool_call", "text": "Edit a.py", "time": "2026-11-09T10:30:00"},
+                    "context": {"percent": 41.5, "tokens": 83000, "window": 200000}},
+            "changes": {"branch": "main", "added": 5, "removed": 1, "ahead": 1, "behind": null,
+                        "files": [{"path": "a.py", "status": "modified", "added": 5, "removed": 1},
+                                  {"path": "b.bin", "status": "modified", "added": null, "removed": null},
+                                  {"path": "c.py", "status": "new"}], "truncated": false},
+            "usage": {"total": 123456, "today": 789, "days": [{"day": "2026-11-09", "tokens": 789}],
+                      "models": [{"model": "opus", "tokens": 789}]},
+            "errors": {"current": "boom", "count": 1, "last_days": 7,
+                       "recent": [{"id": 9, "time": "2026-11-08T09:00:00", "status": "error", "text": "boom"}]},
+            "something_new": true}"""
+        val overview = api().overview(3)
+        assertEquals("working", overview.now.state)
+        assertEquals(2, overview.now.pending)
+        assertEquals("Edit a.py", overview.now.lastEvent?.text)
+        assertEquals(41.5, overview.now.context?.percent ?: 0.0, 0.01)
+        assertEquals(listOf("a.py", "b.bin", "c.py"), overview.changes?.files?.map { it.path })
+        assertNull(overview.changes?.files?.get(1)?.added)
+        assertEquals(123456L, overview.usage.total)
+        assertEquals("boom", overview.errors.current)
+
+        answers["conversations/4/overview"] = 200 to """{"changes": null}"""
+        val bare = api().overview(4)
+        assertEquals("idle", bare.now.state)
+        assertNull(bare.changes)
+        assertTrue(bare.errors.recent.isEmpty())
+    }
+
+    @Test
+    fun `shows a time today as the clock and an older one with its date`() {
+        val today = java.time.LocalDate.of(2026, 11, 9)
+        assertEquals("10:30", overviewTime("2026-11-09T10:30:00", today))
+        assertEquals("08.11. 09:05", overviewTime("2026-11-08T09:05:00", today))
+        assertEquals("–", overviewTime(null, today))
+    }
 }

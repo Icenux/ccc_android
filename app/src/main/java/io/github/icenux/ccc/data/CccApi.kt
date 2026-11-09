@@ -74,6 +74,9 @@ class CccApi(
 
     suspend fun conversation(id: Int): ConversationDetail = get("conversations/$id")
 
+    /** The conversation at a glance: now, changes, usage, errors (older ccc: 404). */
+    suspend fun overview(id: Int): Overview = get("conversations/$id/overview")
+
     /** Transcript events: the newest [limit], or those after / before an index. */
     suspend fun messages(id: Int, after: Int? = null, before: Int? = null, limit: Int = 100): Messages =
         get(
