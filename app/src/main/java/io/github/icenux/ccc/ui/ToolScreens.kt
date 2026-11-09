@@ -357,6 +357,8 @@ class SettingsActions(
     val deleteLaunchPreset: (String) -> Unit,
     val backup: () -> Unit,
     val connection: () -> Unit,
+    val notifications: (Boolean) -> Unit = {},
+    val effects: (Boolean) -> Unit = {},
 )
 
 /** ccc's own settings (Ctrl+P in ccc) — the same choices; secrets only as set / not set. */
@@ -369,6 +371,8 @@ fun CccSettingsScreen(
     initialTab: Int = 0,
     language: String = "",
     onLanguage: (String) -> Unit = {},
+    notifications: Boolean = false,
+    effects: Boolean = true,
 ) {
     Scaffold(
         topBar = { Bar(stringResource(R.string.ccc_settings), null, actions.back) },
@@ -423,6 +427,8 @@ fun CccSettingsScreen(
                 Section(stringResource(R.string.settings_general)) {
                     // The app's own language (not the computer's): applies at once, apart from Save.
                     LanguageChoice(language, onLanguage)
+                    SettingsSwitch(stringResource(R.string.notifications_on_short), notifications, actions.notifications)
+                    SettingsSwitch(stringResource(R.string.menu_effects), effects, actions.effects)
                     Picker(stringResource(R.string.groups_in_list), groups, state.groupsChoices.map { it.value to it.label }) { groups = it }
                 }
             }
@@ -611,4 +617,13 @@ private fun NotifyCategoriesDialog(
         confirmButton = { TextButton(onClick = { onDone(chosen) }) { Text(stringResource(R.string.ok)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+/** A phone-only on/off choice in the settings (applies at once, apart from Save). */
+@Composable
+private fun SettingsSwitch(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
 }
