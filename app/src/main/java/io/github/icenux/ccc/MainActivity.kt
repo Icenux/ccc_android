@@ -67,6 +67,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Watching resumes whenever the app is opened (after an update or a force-stop nothing else restarts it).
+        WatchService.sync(this)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
@@ -140,6 +142,20 @@ private fun App(model: AppViewModel) {
             }
         }
         pending = null
+    }
+    // Android 13+: after signing in, the system asks once whether the app may notify; on a yes, watching starts.
+    val askNotifications = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) model.setNotifications(true)
+    }
+    val loggedIn = screens.firstOrNull() != io.github.icenux.ccc.ui.Screen.Setup
+    LaunchedEffect(loggedIn) {
+        if (loggedIn && !model.notificationsAsked && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+            android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            model.notificationsAsked = true
+            askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
     LaunchedEffect(share) {
         share?.let { export ->

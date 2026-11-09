@@ -18,6 +18,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(NOTIFICATIONS, false)
         set(value) = prefs.edit().putBoolean(NOTIFICATIONS, value).apply()
 
+    /** Whether the system notification-permission dialog was already shown after sign-in (asked once). */
+    var notificationsAsked: Boolean
+        get() = prefs.getBoolean(NOTIFICATIONS_ASKED, false)
+        set(value) = prefs.edit().putBoolean(NOTIFICATIONS_ASKED, value).apply()
+
     /** Glow and endless animations of the HUD look (the side menu's switch); on by default. */
     var effects: Boolean
         get() = prefs.getBoolean(EFFECTS, true)
@@ -53,6 +58,7 @@ class Settings(context: Context) {
         const val SERVER = "server"
         const val TOKEN = "token"
         const val NOTIFICATIONS = "notifications"
+        const val NOTIFICATIONS_ASKED = "notifications_asked"
         const val SHOWN = "shown_alerts"
         const val LIST_DETAILS = "list_details"
         const val LANGUAGE = "language"

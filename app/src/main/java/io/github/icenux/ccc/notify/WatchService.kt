@@ -13,6 +13,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import io.github.icenux.ccc.MainActivity
 import io.github.icenux.ccc.R
 import io.github.icenux.ccc.data.Alert
@@ -49,10 +50,15 @@ class WatchService : Service() {
         channels(this)
         val watching = NotificationCompat.Builder(this, CHANNEL_WATCH)
             .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(largeIcon(this))
             .setContentTitle(getString(R.string.watch_title))
             .setContentText(getString(R.string.watch_text))
             .setContentIntent(openApp(this, null))
             .setOngoing(true)
+            .setSilent(true)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -127,6 +133,13 @@ class WatchService : Service() {
             }
         }
 
+        /** The app's launcher icon as the notification's large icon (the small one is only a white glyph). */
+        fun largeIcon(context: Context): android.graphics.Bitmap? =
+            ContextCompat.getDrawable(context, R.mipmap.ic_launcher)?.let { icon ->
+                val size = context.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
+                androidx.core.graphics.drawable.DrawableCompat.wrap(icon).toBitmap(size, size)
+            }
+
         fun channels(context: Context) {
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.createNotificationChannels(listOf(
@@ -162,13 +175,13 @@ class WatchService : Service() {
                         .setPublicVersion(hidden)
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
                         .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-                    // Allow / Deny only from an unlocked phone (Android 12+); before that, the app answers.
+                    // Allow / Deny live in the full notification only: on a locked screen the public version has no buttons.
+                    // (setAuthenticationRequired(true) is left out: it makes the shade close after every tap.)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         listOf(R.string.allow to "allow", R.string.deny to "deny").forEach { (label, decision) ->
                             builder.addAction(
                                 NotificationCompat.Action.Builder(0, context.getString(label),
                                     ApprovalReceiver.intent(context, p.id, decision, alert.key))
-                                    .setAuthenticationRequired(true)
                                     .build(),
                             )
                         }
@@ -186,7 +199,7 @@ class WatchService : Service() {
                     .setContentIntent(openApp(context, alert.waiting.conversationId))
                     .setAutoCancel(true)
             }
-            val notification: Notification = builder.setSmallIcon(R.drawable.ic_notification).build()
+            val notification: Notification = builder.setSmallIcon(R.drawable.ic_notification).setLargeIcon(largeIcon(context)).build()
             try {
                 NotificationManagerCompat.from(context).notify(alert.key, ALERT_ID, notification)
             } catch (e: SecurityException) {
