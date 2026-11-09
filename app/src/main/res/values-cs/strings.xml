@@ -198,7 +198,7 @@
     <string name="backup_hint">Záloha se dělá automaticky každý den; drží se 14 nejnovějších kopií.</string>
     <string name="backup_now">Zálohovat hned</string>
     <string name="blocked_minutes">Celkový čas zablokovaný limity: %1$s min</string>
-    <string name="ccc_settings">Nastavení ccc</string>
+    <string name="ccc_settings">Nastavení</string>
     <string name="connection">Připojení k ccc</string>
     <string name="continue_text">Text pro pokračování (po limitu využití)</string>
     <string name="deleted">(smazaná)</string>
@@ -366,7 +366,7 @@
 
     <!-- Redesign: sci-fi HUD, spodní lišta a postranní menu (#13) -->
     <string name="nav_dashboard">Přehled</string>
-    <string name="nav_chats">Chaty</string>
+    <string name="nav_chats">Konverzace</string>
     <string name="nav_tasks">Úkoly</string>
     <string name="menu">Menu</string>
     <string name="close">Zavřít</string>

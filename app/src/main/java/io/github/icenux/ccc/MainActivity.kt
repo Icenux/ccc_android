@@ -374,6 +374,8 @@ private fun App(model: AppViewModel) {
         Screen.CccSettings -> CccSettingsScreen(
             language = model.language,
             onLanguage = { model.setLanguage(it); (context as? android.app.Activity)?.recreate() },
+            notifications = notifications,
+            effects = effects,
             state = cccSettings,
             presets = home.promptPresets,
             snackbar = snackbar,
@@ -385,6 +387,8 @@ private fun App(model: AppViewModel) {
                 deleteLaunchPreset = model.more::deleteLaunchPreset,
                 backup = { model.more.backup(context.getString(R.string.backed_up)) },
                 connection = { model.open(Screen.Setup) },
+                notifications = model::setNotifications,
+                effects = model::setEffects,
             ),
         )
         is Screen.Terminal -> terminal?.takeIf { it.id == screen.id }?.let {

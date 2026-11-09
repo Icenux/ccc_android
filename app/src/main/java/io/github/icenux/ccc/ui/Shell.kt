@@ -115,7 +115,7 @@ class ShellActions(
 )
 
 /**
- * Around every screen: the side menu (with a handle on the left edge to pull it out) and the bottom bar.
+ * Around every screen: the side menu (opened by "More" in the bottom bar or a swipe) and the bottom bar.
  * The screens inside keep their own Scaffold; the bar's room is taken away from their insets here.
  */
 @Composable
@@ -154,15 +154,9 @@ fun AppShell(state: ShellState, actions: ShellActions, content: @Composable () -
                     }
                 }
             }
-            if (state.screen != Screen.Setup && !hasOwnInput(state.screen)) {
-                DrawerHandle(Modifier.align(Alignment.CenterStart).offset(y = (-40).dp)) { scope.launch { drawer.open() } }
-            }
         }
     }
 }
-
-/** Screens with a message or text field at the bottom: no handle there (it would sit on the text). */
-private fun hasOwnInput(screen: Screen): Boolean = screen is Screen.Conversation || screen is Screen.Terminal
 
 // --- bottom bar -------------------------------------------------------------------------------------------------
 
@@ -230,32 +224,6 @@ fun CccBottomBar(selected: Dest, onSelect: (Dest) -> Unit) {
     }
 }
 
-// --- the handle on the left edge --------------------------------------------------------------------------------
-
-/** A small tab on the left edge that opens the side menu; at rest its glow breathes. */
-@Composable
-private fun DrawerHandle(modifier: Modifier, onClick: () -> Unit) {
-    val loops = effects().loops
-    val glow = if (loops) {
-        rememberInfiniteTransition(label = "handle").animateFloat(
-            0.25f, 0.9f, infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "handle-glow",
-        ).value
-    } else 0.5f
-    val shape = RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp)
-    Box(
-        modifier
-            .glowRect(CccColors.Cyan, corner = 10.dp, spread = 8.dp, alpha = glow * 0.5f)
-            .size(width = 22.dp, height = 92.dp)
-            .clip(shape)
-            .background(CccColors.Surface, shape)
-            .border(1.dp, CccColors.Cyan.copy(alpha = 0.35f + glow * 0.45f), shape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(HudIcons.Handle, stringResource(R.string.menu), Modifier.size(18.dp), tint = CccColors.Cyan)
-    }
-}
-
 // --- the side menu ----------------------------------------------------------------------------------------------
 
 private class MenuEntry(
@@ -281,7 +249,6 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
             home.permissions.size.takeIf { it > 0 }?.toString(), CccColors.Red) { it.screen(Screen.Approvals) },
         MenuEntry(HudIcons.Tasks, stringResource(R.string.tasks), CccColors.Amber, onMain && home.tab == HomeTab.TASKS,
             home.conversations.sumOf { it.pending }.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.TASKS) },
-        MenuEntry(HudIcons.Chats, stringResource(R.string.conversations), CccColors.Blue, onMain && home.tab == HomeTab.CONVERSATIONS) { it.tab(HomeTab.CONVERSATIONS) },
         MenuEntry(HudIcons.Archive, stringResource(R.string.archive), CccColors.Dim, onMain && home.tab == HomeTab.ARCHIVE,
             home.archived.size.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.ARCHIVE) },
         MenuEntry(HudIcons.Routines, stringResource(R.string.routines), purple, screen == Screen.Routines) { it.screen(Screen.Routines) },
@@ -422,32 +389,12 @@ private fun MenuFooter(state: ShellState, actions: ShellActions) {
                 UsageCard(usage)
             }
         }
-        SwitchRow(stringResource(R.string.notifications_on_short), state.notifications, actions.notifications)
-        SwitchRow(stringResource(R.string.menu_effects), state.effects, actions.effects)
         Text(
             stringResource(R.string.menu_swipe_close),
             Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.labelSmall,
             color = CccColors.Faint,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = CccColors.Dim)
-        Switch(
-            checked = checked,
-            onCheckedChange = onChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = CccColors.Background,
-                checkedTrackColor = CccColors.Cyan,
-                uncheckedThumbColor = CccColors.Dim,
-                uncheckedTrackColor = CccColors.SurfaceHigh,
-                uncheckedBorderColor = CccColors.Line,
-            ),
         )
     }
 }
