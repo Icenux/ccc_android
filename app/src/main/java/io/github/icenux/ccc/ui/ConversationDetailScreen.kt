@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.icenux.ccc.R
 import io.github.icenux.ccc.data.Conversation
+import io.github.icenux.ccc.data.Overview
 import io.github.icenux.ccc.data.Permission
 import io.github.icenux.ccc.data.shortPath
 import io.github.icenux.ccc.ui.theme.CccColors
@@ -55,6 +56,7 @@ class DetailActions(
 fun ConversationDetailScreen(
     conversation: Conversation?,
     permissions: List<Permission>,
+    overview: Overview?,
     snackbar: SnackbarHostState,
     actions: DetailActions,
 ) {
@@ -132,7 +134,8 @@ fun ConversationDetailScreen(
                         }
                     }
                 }
-                conversation.git?.takeIf { it.added > 0 || it.removed > 0 || it.branch != null }?.let { git ->
+                if (overview != null) overviewItems(overview)
+                else conversation.git?.takeIf { it.added > 0 || it.removed > 0 || it.branch != null }?.let { git ->
                     item(key = "changes") {
                         HudPanel(brackets = false, accent = CccColors.Line, contentPadding = PaddingValues(14.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {

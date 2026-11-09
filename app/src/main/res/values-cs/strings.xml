@@ -428,4 +428,21 @@
     <string name="prompt_cancel">Zrušit (Esc)</string>
     <string name="prompt_changed">Otázka se změnila — podívej se na ni znovu</string>
     <string name="prompt_truncated">Ukázala se jen část otázky — před odpovědí zkontroluj terminál</string>
+    <string name="overview_now">Teď</string>
+    <string name="overview_queued">ve frontě: %d</string>
+    <string name="overview_next_retry">Další pokus %s</string>
+    <string name="overview_no_activity">Zatím žádná aktivita.</string>
+    <string name="overview_kind_you">ty</string>
+    <string name="overview_kind_tool">nástroj</string>
+    <string name="overview_kind_result">výsledek</string>
+    <string name="overview_no_git">Nezobrazeno: ccc čte git jen ve složce s gitem a v konverzacích spuštěných s „Přeskočit všechny kontroly oprávnění“.</string>
+    <string name="overview_no_changes">Žádné necommitnuté změny.</string>
+    <string name="overview_file_new">nový</string>
+    <string name="overview_file_binary">binární</string>
+    <string name="overview_more_files">… a další soubory</string>
+    <string name="overview_usage">Spotřeba · 14 dní</string>
+    <string name="overview_usage_totals">Dnes %1$s tokenů · celkem %2$s</string>
+    <string name="overview_errors">Chyby</string>
+    <string name="overview_no_errors">Žádné selhané běhy.</string>
+    <string name="overview_failed">Selhané běhy za posledních %2$d dní: %1$d</string>
 </resources>

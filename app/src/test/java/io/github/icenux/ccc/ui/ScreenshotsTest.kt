@@ -256,10 +256,35 @@ open class ScreenshotsTest {
         }
     }
 
+    private val overviewSample = io.github.icenux.ccc.data.Overview(
+        now = io.github.icenux.ccc.data.OverviewNow(
+            state = "working", stateLabel = "Working", pending = 1,
+            lastEvent = io.github.icenux.ccc.data.OverviewEvent("tool_call", "Edit api/limits.py", "2026-11-09T10:30:00"),
+        ),
+        changes = io.github.icenux.ccc.data.OverviewChanges(
+            branch = "feature/rate-limit", added = 42, removed = 7, ahead = 2,
+            files = listOf(
+                io.github.icenux.ccc.data.OverviewFile("api/limits.py", "modified", 38, 5),
+                io.github.icenux.ccc.data.OverviewFile("tests/api/test_limits.py", "new"),
+            ),
+        ),
+        usage = io.github.icenux.ccc.data.OverviewUsage(
+            total = 1_240_000, today = 86_000,
+            days = listOf(0L, 12_000L, 0L, 40_000L, 22_000L, 9_000L, 86_000L).mapIndexed { i, t ->
+                io.github.icenux.ccc.data.OverviewDay("2026-11-0${i + 3}", t)
+            },
+            models = listOf(io.github.icenux.ccc.data.OverviewModel("claude-opus-4", 1_100_000)),
+        ),
+        errors = io.github.icenux.ccc.data.OverviewErrors(
+            count = 1,
+            recent = listOf(io.github.icenux.ccc.data.OverviewFailure(1, "2026-11-08T09:00:00", "rate_limited", "Usage limit reached")),
+        ),
+    )
+
     @Test
     fun conversationDetail() = shot("conversation_detail", "pytest -q tests/api") {
         shell(HomeTab.CONVERSATIONS, Screen.ConversationDetail(1)) {
-            ConversationDetailScreen(home.conversations.first(), listOf(permission), SnackbarHostState(),
+            ConversationDetailScreen(home.conversations.first(), listOf(permission), overviewSample, SnackbarHostState(),
                 DetailActions({}, {}, {}, {}, { _, _ -> }))
         }
     }
