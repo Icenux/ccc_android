@@ -454,6 +454,9 @@
     <string name="alert_kind_update">ccc updates</string>
     <string name="persistent_notification">Lasting notification</string>
     <string name="persistent_notification_hint">Stays in the shade and shows the usage limit, the number of conversations and how many need you.</string>
+    <string name="usage_limit_title">Usage limit reached</string>
+    <string name="usage_limit_5h">The 5-hour limit is used up.</string>
+    <string name="usage_limit_7d">The weekly limit is used up.</string>
     <string name="persistent_limit_5h">5 h %1$d %%</string>
     <string name="persistent_limit_7d">7 d %1$d %%</string>
     <string name="persistent_limit_unknown">Limit unknown</string>
