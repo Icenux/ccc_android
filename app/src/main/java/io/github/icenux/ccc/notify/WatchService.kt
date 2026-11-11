@@ -101,12 +101,14 @@ class WatchService : Service() {
 
     private suspend fun check(api: CccApi, settings: Settings) = checking.withLock {
         val kinds = settings.alertKinds
-        var changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update, kinds)
+        // Usage is a nicety here: if it can't be read, the other alerts still go out.
+        val usage = try { api.usage() } catch (e: ApiException) { null }
+        var changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update, kinds, usage)
         if (changes.show.isNotEmpty()) {
             // A conversation open in the computer's TUI is marked seen within moments: look again before notifying,
             // so what you are looking at never reaches the phone (not even for a flash).
             delay(SETTLE_MS)
-            changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update, kinds)
+            changes = Alerts.changes(api.permissions(), api.waiting(), settings.shownAlerts, api.status().update, kinds, usage)
         }
         val manager = NotificationManagerCompat.from(this)
         changes.gone.forEach { manager.cancel(it, ALERT_ID) }
@@ -261,6 +263,12 @@ class WatchService : Service() {
                 is Alert.Update -> NotificationCompat.Builder(context, CHANNEL_NEEDS_YOU)
                     .setContentTitle(context.getString(R.string.update_notification_title))
                     .setContentText(context.getString(R.string.update_notification_text, alert.behind))
+                    .setContentIntent(openApp(context, null))
+                    .setAutoCancel(true)
+                is Alert.UsageLimit -> NotificationCompat.Builder(context, CHANNEL_NEEDS_YOU)
+                    .setContentTitle(context.getString(R.string.usage_limit_title))
+                    .setContentText(context.getString(
+                        if (alert.window == "7d") R.string.usage_limit_7d else R.string.usage_limit_5h))
                     .setContentIntent(openApp(context, null))
                     .setAutoCancel(true)
                 is Alert.NeedsYou -> NotificationCompat.Builder(context, CHANNEL_NEEDS_YOU)

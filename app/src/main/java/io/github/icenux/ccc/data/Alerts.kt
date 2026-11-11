@@ -18,6 +18,12 @@ sealed interface Alert {
         override val kind get() = waiting.kind
     }
 
+    /** The account itself is out of usage in one window ("5h" / "7d"): once per exhausted window. */
+    data class UsageLimit(val window: String, val resetsAt: String?) : Alert {
+        override val key get() = "l:$window"
+        override val kind get() = AlertKind.LIMIT
+    }
+
     /** A new ccc version: once per version (its head). */
     data class Update(val behind: Int, val head: String) : Alert {
         override val key get() = "u:$head"
@@ -53,13 +59,21 @@ object Alerts {
         shown: Set<String>,
         update: UpdateInfo? = null,
         kinds: Set<String> = AlertKind.DEFAULT,
+        usage: Usage? = null,
     ): AlertChanges {
         val news = update?.takeIf { it.available && !it.remoteHead.isNullOrEmpty() }?.let { listOf(Alert.Update(it.behind, it.remoteHead!!)) }
             .orEmpty()
-        val now = (permissions.map(Alert::Approval) + waiting.filter { it.kind != "approval" }.map(Alert::NeedsYou) + news)
+        val now = (permissions.map(Alert::Approval) + waiting.filter { it.kind != "approval" }.map(Alert::NeedsYou) + news +
+            exhausted(usage))
             // A kind the app doesn't know is never switched off.
             .filter { it.kind in kinds || it.kind !in AlertKind.ALL }
         val keys = now.map { it.key }.toSet()
         return AlertChanges(show = now.filter { it.key !in shown }, gone = shown - keys)
     }
+
+    /** Usage windows that are used up (100 %), whether or not any conversation hit the limit. */
+    private fun exhausted(usage: Usage?): List<Alert> = listOfNotNull(
+        usage?.fiveHour?.takeIf { it.percent >= 100.0 }?.let { Alert.UsageLimit("5h", it.resetsAt) },
+        usage?.sevenDay?.takeIf { it.percent >= 100.0 }?.let { Alert.UsageLimit("7d", it.resetsAt) },
+    )
 }

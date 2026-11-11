@@ -450,6 +450,9 @@
     <string name="alert_kind_update">Aktualizace ccc</string>
     <string name="persistent_notification">Trvalé oznámení</string>
     <string name="persistent_notification_hint">Zůstává v panelu a ukazuje využití limitu, počet konverzací a kolik jich čeká na tebe.</string>
+    <string name="usage_limit_title">Došel limit využití</string>
+    <string name="usage_limit_5h">Vyčerpaný 5hodinový limit..</string>
+    <string name="usage_limit_7d">Vyčerpaný týdenní limit..</string>
     <string name="persistent_limit_5h">5 h %1$d %%</string>
     <string name="persistent_limit_7d">7 d %1$d %%</string>
     <string name="persistent_limit_unknown">Limit neznámý</string>

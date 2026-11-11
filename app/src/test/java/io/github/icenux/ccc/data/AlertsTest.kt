@@ -48,4 +48,21 @@ class AlertsTest {
         // Switched off while shown: it is taken away.
         assertEquals(setOf("w:3:error"), Alerts.changes(emptyList(), listOf(error), setOf("w:3:error"), kinds = kinds).gone)
     }
+
+    @Test
+    fun `a used up usage window is told once, for the 4 hour and the weekly one, and goes away with the reset`() {
+        val out = Usage(fiveHour = UsageWindow(100.0, "t1"), sevenDay = UsageWindow(100.0, "t2"))
+        val first = Alerts.changes(emptyList(), emptyList(), emptySet(), usage = out)
+        assertEquals(listOf(Alert.UsageLimit("5h", "t1"), Alert.UsageLimit("7d", "t2")), first.show)
+        assertEquals(emptyList<Alert>(), Alerts.changes(emptyList(), emptyList(), first.show.map { it.key }.toSet(), usage = out).show)
+        val reset = Usage(fiveHour = UsageWindow(3.0, "t3"), sevenDay = UsageWindow(100.0, "t2"))
+        assertEquals(setOf("l:5h"), Alerts.changes(emptyList(), emptyList(), setOf("l:5h", "l:7d"), usage = reset).gone)
+        assertEquals(emptyList<Alert>(), Alerts.changes(emptyList(), emptyList(), emptySet(), usage = Usage(fiveHour = UsageWindow(99.0))).show)
+    }
+
+    @Test
+    fun `a switched off limit kind silences the usage alert too`() {
+        val out = Usage(fiveHour = UsageWindow(100.0))
+        assertEquals(emptyList<Alert>(), Alerts.changes(emptyList(), emptyList(), emptySet(), kinds = setOf("done"), usage = out).show)
+    }
 }
