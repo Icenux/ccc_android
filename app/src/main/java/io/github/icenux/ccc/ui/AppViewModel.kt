@@ -32,6 +32,7 @@ import io.github.icenux.ccc.data.Usage
 import io.github.icenux.ccc.data.Waiting
 import io.github.icenux.ccc.notify.WatchService
 import java.io.IOException
+import kotlinx.serialization.SerializationException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -618,6 +619,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _message.value = describe(e)
                         return@launch
                     }
+                } catch (e: SerializationException) {
+                    // An unreadable event must not end the stream for good: connect again and reload.
                 }
                 // Closed or broken: connect again, waiting longer each time.
                 _home.update { it.copy(live = false) }

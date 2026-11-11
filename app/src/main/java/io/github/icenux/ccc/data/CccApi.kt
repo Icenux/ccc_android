@@ -26,6 +26,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 /** An error answer of ccc's API; [message] is ccc's own text, in its language. */
 class ApiException(val code: Int, message: String) : IOException(message)
 
+/** ccc sends a keepalive every 15 s; the events stream silent for this long is dead. */
+private const val STREAM_SILENCE_SECONDS = 45L
+
 /**
  * ccc's HTTP API (src/ccc/api.py) at [server] — e.g.
  * https://computer.tailnet.ts.net, with or without /api/v1 — signed in
@@ -39,8 +42,10 @@ class CccApi(
     private val onUnauthorized: () -> Unit = {},
 ) {
     private val base: HttpUrl = baseUrl(server) ?: throw IllegalArgumentException(server)
-    // The events stream stays open: no read timeout (ccc sends a keepalive every 15 s).
-    private val streamClient = client.newBuilder().readTimeout(0, TimeUnit.SECONDS).build()
+    // The events stream stays open, but ccc sends a keepalive every 15 s: three missed ones mean the connection
+    // died silently (sleeping phone, Wi-Fi/Tailscale switch). Without a timeout it hung for ever, showed "live"
+    // and the conversation stayed "working" long after Claude Code had finished (#36).
+    private val streamClient = client.newBuilder().readTimeout(STREAM_SILENCE_SECONDS, TimeUnit.SECONDS).build()
 
     suspend fun status(): Status = get("status")
 
