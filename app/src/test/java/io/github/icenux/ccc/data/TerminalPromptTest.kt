@@ -68,4 +68,12 @@ class TerminalPromptTest {
         assertEquals("Bash command\n\npytest -q tests/\nRun the unit tests", prompt.body)
         assertEquals(false, prompt.truncated)
     }
+
+    @Test
+    fun redirectInTheCommandDoesNotCutTheBodyUnnoticed() {
+        val screen = "──────────────\n Bash command\n\n   echo x\n   > /etc/passwd\n\n Do you want to proceed?\n ❯ 1. Yes\n   2. No\n\n Esc to cancel\n"
+        val prompt = TerminalPrompts.detect(screen)!!
+        assertEquals(true, prompt.body.contains("> /etc/passwd"))
+        assertEquals(true, prompt.body.contains("Bash command"))
+    }
 }

@@ -92,6 +92,7 @@
     <string name="back">Zpět</string>
     <string name="message_hint">Zpráva pro Clauda…</string>
     <string name="send">Odeslat</string>
+    <string name="send_immediately">Odeslat ihned (mimo frontu)</string>
     <string name="queued">ve frontě</string>
     <string name="retry">Zopakovat / pokračovat</string>
     <string name="load_older">Starší zprávy</string>

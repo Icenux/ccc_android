@@ -117,6 +117,8 @@ class ConversationActions(
     val terminal: () -> Unit,
     /** Answer Claude Code's question in the terminal with option n (null: Esc). */
     val answerPrompt: (io.github.icenux.ccc.data.TerminalPrompt, Int?) -> Unit = { _, _ -> },
+    /** While Claude works: into the terminal at once instead of the queue (interactive conversations). */
+    val sendNow: (String, () -> Unit) -> Unit = { _, _ -> },
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -258,6 +260,13 @@ fun ConversationScreen(
                             }
                         }
                     }
+                }
+                if (working && draft.text.isNotBlank() && !state.sending &&
+                    (detail?.deliveryMode == "interactive" || detail?.deliveryMode == "remote_control")) {
+                    TextButton(
+                        onClick = { actions.sendNow(draft.text) { draft = TextFieldValue("") } },
+                        modifier = Modifier.align(Alignment.End),
+                    ) { Text(stringResource(R.string.send_immediately), color = CccColors.Amber) }
                 }
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(

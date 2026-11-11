@@ -94,6 +94,7 @@
     <string name="back">Back</string>
     <string name="message_hint">Message for Claude…</string>
     <string name="send">Send</string>
+    <string name="send_immediately">Send immediately (skip the queue)</string>
     <string name="queued">queued</string>
     <string name="retry">Retry / resume</string>
     <string name="load_older">Older messages</string>

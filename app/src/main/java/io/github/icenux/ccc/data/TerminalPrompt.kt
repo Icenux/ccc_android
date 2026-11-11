@@ -25,8 +25,6 @@ object TerminalPrompts {
     private const val BODY_LINES = 40
     /** A horizontal rule or the top of a box: where Claude Code's dialog starts. */
     private val RULE = Regex("""^[\s─━═╭╮╰╯┄┈╌-]{3,}$""")
-    /** Claude's own output or the user's prompt above the dialog. */
-    private val OUTSIDE = Regex("""^\s*[●⏺>]""")
     private const val BOX = "│┃║"
 
     /** A screen line without the frame Claude Code draws around a dialog. */
@@ -70,16 +68,18 @@ object TerminalPrompts {
         }.asReversed()
         // The body: what the dialog is about, further up — to the dialog's top rule or Claude's own output.
         val bodyLines = ArrayDeque<String>()
+        // Only the dialog's own top border (a rule) confirms that the whole body is shown; any other stop may hide a part.
+        var border = false
         while (i >= 0 && bodyLines.size < BODY_LINES) {
             val line = lines[i]
-            if (RULE.matches(line) || OUTSIDE.containsMatchIn(line)) break
+            if (RULE.matches(line)) { border = true; break }
             if (line.isBlank() && (bodyLines.isEmpty() || bodyLines.first().isBlank())) { i--; continue }
             bodyLines.addFirst(line.trimEnd())
             i--
         }
         while (bodyLines.isNotEmpty() && bodyLines.first().isBlank()) bodyLines.removeFirst()
-        // More of the dialog above than fits: the card says so, the terminal has all of it.
-        cut = i >= 0 && bodyLines.size >= BODY_LINES && !RULE.matches(lines[i]) && !OUTSIDE.containsMatchIn(lines[i])
+        // Anything but the top border: the card says the body may be incomplete, the terminal has all of it.
+        cut = bodyLines.isNotEmpty() && !border
         val question = questionLines.joinToString(" ").trim()
         val body = bodyLines.joinToString("\n").trimEnd()
         return TerminalPrompt(question, options, truncated = cut, body = body)

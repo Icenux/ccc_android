@@ -289,6 +289,7 @@ private fun App(model: AppViewModel) {
                 actions = ConversationActions(
                     back = model::back,
                     send = model::send,
+                    sendNow = model::sendNow,
                     retry = model::retry,
                     loadOlder = model::loadOlder,
                     decide = model::decide,
