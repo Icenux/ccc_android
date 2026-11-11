@@ -51,7 +51,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import io.github.icenux.ccc.data.Elapsed
 import io.github.icenux.ccc.data.Permission
 import io.github.icenux.ccc.data.PromptPreset
+import io.github.icenux.ccc.data.CommandLine
+import io.github.icenux.ccc.data.SlashCommands
+import io.github.icenux.ccc.data.commandLine
 import io.github.icenux.ccc.data.mentionAt
+import io.github.icenux.ccc.data.slashQuery
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -233,6 +237,12 @@ fun ConversationScreen(
                     draft = TextFieldValue(text, TextRange(text.length))
                     actions.mention(null)
                 }
+                slashQuery(draft.text)?.let { query ->
+                    SlashMenu(SlashCommands.matching(query)) { command ->
+                        val text = "/${command.name} "
+                        draft = TextFieldValue(text, TextRange(text.length))
+                    }
+                }
                 if (presets.isNotEmpty()) {
                     Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 4.dp),
@@ -315,7 +325,8 @@ fun ConversationScreen(
             detail?.queued?.reversed()?.let { queued ->
                 items(queued, key = { "queued:${it.id}" }) { QueuedBubble(it.text, it.sending, Modifier.animateItem()) }
             }
-            items(state.messages.reversed(), key = { it.index }) { message ->
+            items(state.messages.reversed().filterNot { it.kind == "human" && commandLine(it.text) == CommandLine.Hidden },
+                key = { it.index }) { message ->
                 val streaming = message.index == newest && message.kind == "assistant_text" && detail?.state == ConversationStatus.RUNNING
                 MessageItem(message, streaming, took[message.index], Modifier.animateItem())
             }
@@ -399,6 +410,33 @@ private fun Mentions(files: List<String>, onPick: (String) -> Unit) {
     }
 }
 
+/** The commands that fit what follows the slash, each with what it does. */
+@Composable
+private fun SlashMenu(commands: List<io.github.icenux.ccc.data.SlashCommand>, onPick: (io.github.icenux.ccc.data.SlashCommand) -> Unit) {
+    if (commands.isEmpty()) return
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Card(
+        Modifier.fillMaxWidth().padding(bottom = 4.dp).heightIn(max = 240.dp),
+        colors = CardDefaults.cardColors(containerColor = CccColors.Surface),
+        border = BorderStroke(1.dp, CccColors.Line),
+    ) {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            commands.forEach { command ->
+                val hint = context.resources.getIdentifier("slash_${command.name}", "string", context.packageName)
+                    .takeIf { it != 0 }?.let { context.getString(it) }.orEmpty()
+                Row(
+                    Modifier.fillMaxWidth().clickable { onPick(command) }.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("/${command.name}", fontFamily = CccFonts.Mono, style = MaterialTheme.typography.bodySmall, color = CccColors.Cyan)
+                    Spacer(Modifier.width(10.dp))
+                    Text(hint, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
 /** Put the conversation into one of your own groups, a new one, or none. */
 @Composable
 private fun GroupPicker(current: String?, ownGroups: List<String>, onPick: (String?) -> Unit, onClose: () -> Unit) {
@@ -462,7 +500,13 @@ private fun Header(detail: io.github.icenux.ccc.data.ConversationDetail) {
 @Composable
 private fun MessageItem(message: Message, streaming: Boolean, took: Long?, modifier: Modifier) {
     when (message.kind) {
-        "human" -> Bubble(stringResource(R.string.you), message.text, shortTime(message.time), CccColors.Human, modifier, end = true)
+        "human" -> when (val command = commandLine(message.text)) {
+            is CommandLine.Ran -> Bubble(stringResource(R.string.you), command.text, shortTime(message.time), CccColors.Human, modifier,
+                end = true, mono = true)
+            is CommandLine.Output -> Bubble(stringResource(R.string.command_output), command.text, shortTime(message.time), CccColors.Muted,
+                modifier, mono = true)
+            else -> Bubble(stringResource(R.string.you), message.text, shortTime(message.time), CccColors.Human, modifier, end = true)
+        }
         "assistant_text" -> Bubble(stringResource(R.string.claude), message.text, shortTime(message.time), CccColors.Claude, modifier,
             markdown = true, cursor = streaming, took = took?.let { stringResource(R.string.took_for, Elapsed.text(it)) })
         else -> ToolLine(message, modifier)
@@ -472,7 +516,7 @@ private fun MessageItem(message: Message, streaming: Boolean, took: Long?, modif
 @Composable
 private fun Bubble(
     who: String, text: String, time: String?, color: androidx.compose.ui.graphics.Color, modifier: Modifier, end: Boolean = false,
-    markdown: Boolean = false, cursor: Boolean = false, took: String? = null,
+    markdown: Boolean = false, cursor: Boolean = false, took: String? = null, mono: Boolean = false,
 ) {
     val shape = RoundedCornerShape(6.dp)
     Box(modifier.fillMaxWidth(), contentAlignment = if (end) Alignment.CenterEnd else Alignment.CenterStart) {
@@ -497,7 +541,8 @@ private fun Bubble(
             }
             Spacer(Modifier.height(4.dp))
             SelectionContainer {
-                if (markdown) MarkdownText(text) else Text(text, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text)
+                if (markdown) MarkdownText(text) else Text(text, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text,
+                    fontFamily = if (mono) CccFonts.Mono else null)
             }
             if (cursor) BlinkingCursor(color)
         }

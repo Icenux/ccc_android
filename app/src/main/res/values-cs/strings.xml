@@ -459,4 +459,25 @@
     <string name="persistent_limit_7d">7 d %1$d %%</string>
     <string name="persistent_limit_unknown">Limit neznámý</string>
     <string name="persistent_counts">%1$d konverzací · %2$d čeká na tebe</string>
+    <string name="command_output">Výstup příkazu</string>
+    <string name="slash_clear">Smazat kontext a začít znovu</string>
+    <string name="slash_compact">Zkrátit konverzaci shrnutím</string>
+    <string name="slash_context">Kolik kontextu je zaplněno</string>
+    <string name="slash_cost">Spotřeba tokenů a cena</string>
+    <string name="slash_usage">Využití limitů účtu</string>
+    <string name="slash_model">Změnit model</string>
+    <string name="slash_resume">Navázat na dřívější konverzaci</string>
+    <string name="slash_review">Zkontrolovat pull request</string>
+    <string name="slash_memory">Upravit paměť (CLAUDE.md)</string>
+    <string name="slash_init">Vytvořit CLAUDE.md</string>
+    <string name="slash_help">Nápověda a seznam příkazů</string>
+    <string name="slash_config">Nastavení Claude Code</string>
+    <string name="slash_mcp">Servery MCP</string>
+    <string name="slash_agents">Správa subagentů</string>
+    <string name="slash_permissions">Oprávnění nástrojů</string>
+    <string name="slash_status">Stav, verze a účet</string>
+    <string name="slash_doctor">Zkontrolovat instalaci</string>
+    <string name="slash_rewind">Vrátit konverzaci nebo kód zpět</string>
+    <string name="slash_export">Exportovat konverzaci</string>
+    <string name="slash_todos">Seznam úkolů</string>
 </resources>
