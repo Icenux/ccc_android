@@ -96,6 +96,7 @@
     <string name="send">Odeslat</string>
     <string name="send_immediately">Odeslat ihned (mimo frontu)</string>
     <string name="queued">ve frontě</string>
+    <string name="sending">odesílá se</string>
     <string name="retry">Zopakovat / pokračovat</string>
     <string name="load_older">Starší zprávy</string>
     <string name="no_messages">Zatím žádná konverzace.</string>

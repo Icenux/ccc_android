@@ -261,7 +261,7 @@ fun ConversationScreen(
                         }
                     }
                 }
-                if (working && draft.text.isNotBlank() && !state.sending &&
+                if ((working || queuedCount > 0) && draft.text.isNotBlank() && !state.sending &&
                     (detail?.deliveryMode == "interactive" || detail?.deliveryMode == "remote_control")) {
                     TextButton(
                         onClick = { actions.sendNow(draft.text) { draft = TextFieldValue("") } },
@@ -313,7 +313,7 @@ fun ConversationScreen(
         ) {
             if (working) item(key = "working") { WorkingIndicator(since, Modifier.animateItem()) }
             detail?.queued?.reversed()?.let { queued ->
-                items(queued, key = { "queued:${it.id}" }) { QueuedBubble(it.text, Modifier.animateItem()) }
+                items(queued, key = { "queued:${it.id}" }) { QueuedBubble(it.text, it.sending, Modifier.animateItem()) }
             }
             items(state.messages.reversed(), key = { it.index }) { message ->
                 val streaming = message.index == newest && message.kind == "assistant_text" && detail?.state == ConversationStatus.RUNNING
@@ -517,7 +517,7 @@ private fun BlinkingCursor(color: androidx.compose.ui.graphics.Color) {
 }
 
 @Composable
-private fun QueuedBubble(text: String, modifier: Modifier) {
+private fun QueuedBubble(text: String, sending: Boolean, modifier: Modifier) {
     val shape = RoundedCornerShape(6.dp)
     Box(modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         Column(
@@ -526,7 +526,7 @@ private fun QueuedBubble(text: String, modifier: Modifier) {
             Row {
                 Text(stringResource(R.string.you).uppercase(), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge, color = CccColors.Dim)
                 Spacer(Modifier.width(8.dp))
-                Text("· " + stringResource(R.string.queued).uppercase(), style = MaterialTheme.typography.labelLarge, color = CccColors.Dim)
+                Text("· " + stringResource(if (sending) R.string.sending else R.string.queued).uppercase(), style = MaterialTheme.typography.labelLarge, color = CccColors.Dim)
             }
             Text(text, style = MaterialTheme.typography.bodyMedium, color = CccColors.Dim)
         }
