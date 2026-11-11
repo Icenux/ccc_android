@@ -166,6 +166,8 @@ data class ConversationDetail(
     val path: String,
     val status: String,
     @SerialName("delivery_mode") val deliveryMode: String,
+    /** The Claude Code session whose transcript is shown; /clear makes a new one. */
+    @SerialName("session_id") val sessionId: String? = null,
     val archived: Boolean = false,
     val paused: Boolean = false,
     val pending: Int = 0,

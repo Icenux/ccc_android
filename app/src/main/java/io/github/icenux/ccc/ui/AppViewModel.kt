@@ -336,6 +336,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _install.value = null
     }
 
+    /** The downloaded app waiting for the person to allow "install unknown apps" in the system settings. */
+    private var waitingForInstallPermission: java.io.File? = null
+
+    fun installWaitsForPermission(apk: java.io.File) {
+        waitingForInstallPermission = apk
+    }
+
+    /** The person is back from the settings: install if allowed, otherwise tell it (the download is dropped). */
+    fun installPermissionChecked(allowed: Boolean, notAllowedText: String) {
+        val apk = waitingForInstallPermission ?: return
+        waitingForInstallPermission = null
+        if (allowed) _install.value = apk else _message.value = notAllowedText
+    }
+
     /** Download the new version; the activity then installs it. */
     fun updateApp() {
         val release = _newVersion.value ?: return
@@ -751,11 +765,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         guard {
             val detail = client.conversation(id)
             val shown = _conversation.value?.takeIf { it.id == id } ?: return@guard
-            val last = shown.messages.lastOrNull()?.index
-            val fresh = client.messages(id, after = last)
+            // After /clear (or any new session) the conversation's transcript is another one, counted from 0:
+            // asking only for what follows the old last index returned nothing and the chat stood still.
+            val sessionChanged = shown.detail != null && shown.detail.sessionId != detail.sessionId
+            val last = shown.messages.lastOrNull()?.index?.takeUnless { sessionChanged }
+            var fresh = client.messages(id, after = last)
+            var append = last != null
+            if (append && fresh.total <= last!!) {
+                // The transcript is shorter than what is shown: replaced, not continued — load it anew.
+                fresh = client.messages(id)
+                append = false
+            }
             _conversation.update { state ->
                 if (state == null || state.id != id) return@update state
-                val messages = if (last == null) fresh.messages else state.messages + fresh.messages
+                val messages = if (append) state.messages + fresh.messages else fresh.messages
                 state.copy(detail = detail, messages = messages, total = fresh.total)
             }
         }
