@@ -54,9 +54,11 @@ import io.github.icenux.ccc.ui.ConversationDetailScreen
 import io.github.icenux.ccc.ui.DetailActions
 import io.github.icenux.ccc.ui.NewConversationSheet
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import io.github.icenux.ccc.data.Language
 import io.github.icenux.ccc.ui.SearchScreen
+import io.github.icenux.ccc.ui.SetupContent
 import io.github.icenux.ccc.ui.SetupScreen
 import io.github.icenux.ccc.ui.theme.CccTheme
 
@@ -380,6 +382,29 @@ private fun App(model: AppViewModel) {
             alertKinds = alertKinds,
             persistent = persistent,
             effects = effects,
+            connection = {
+                SetupContent(
+                    Modifier.fillMaxWidth(),
+                    server = model.server,
+                    signedIn = true,
+                    notifications = notifications,
+                    listDetails = listDetails,
+                    onListDetail = model::setListDetail,
+                    onConnect = model::connect,
+                    onNotifications = model::setNotifications,
+                    onSignOut = model::signOut,
+                    devices = devices,
+                    deviceHistory = deviceHistory,
+                    onDevices = model::loadDevices,
+                    onSignOutDevice = model::signOutDevice,
+                    invite = invite,
+                    currentServer = model.currentServer,
+                    onScan = model::scanned,
+                    onPair = model::pair,
+                    onInviteDismissed = model::inviteDismissed,
+                    showLanguage = false,
+                )
+            },
             state = cccSettings,
             presets = home.promptPresets,
             snackbar = snackbar,
@@ -390,7 +415,6 @@ private fun App(model: AppViewModel) {
                 savePresets = model::savePromptPresets,
                 deleteLaunchPreset = model.more::deleteLaunchPreset,
                 backup = { model.more.backup(context.getString(R.string.backed_up)) },
-                connection = { model.open(Screen.Setup) },
                 notifications = model::setNotifications,
                 alertKinds = model::setAlertKinds,
                 persistent = model::setPersistent,

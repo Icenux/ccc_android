@@ -313,7 +313,6 @@
     <string name="settings_notifications">Notifikace</string>
     <string name="tab_presets">Předvolby</string>
     <string name="settings_connection">Připojení</string>
-    <string name="settings_connection_hint">Přihlášení (naskenuj QR kód), přihlášené telefony, notifikace tohoto telefonu a co ukazuje seznam konverzací.</string>
     <string name="settings_discord">Oznámení přes Discord</string>
     <string name="settings_folders">Složky</string>
     <string name="settings_general">Obecné</string>
