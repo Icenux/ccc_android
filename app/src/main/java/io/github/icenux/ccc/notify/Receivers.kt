@@ -53,6 +53,19 @@ class ApprovalReceiver : BroadcastReceiver() {
     }
 }
 
+/** The lasting notification swiped out of the shade: shown again at once (its switch in Settings is the way to remove it). */
+class WatchDismissedReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        WatchService.restoreWatching(context)
+    }
+
+    companion object {
+        fun intent(context: Context): PendingIntent =
+            PendingIntent.getBroadcast(context, 0, Intent(context, WatchDismissedReceiver::class.java),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+}
+
 /** After the phone starts (or the app is updated): watch again if notifications are on. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
