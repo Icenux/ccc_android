@@ -357,7 +357,6 @@ class SettingsActions(
     val savePresets: (List<PromptPreset>) -> Unit,
     val deleteLaunchPreset: (String) -> Unit,
     val backup: () -> Unit,
-    val connection: () -> Unit,
     val notifications: (Boolean) -> Unit = {},
     val alertKinds: (Set<String>) -> Unit = {},
     val persistent: (Boolean) -> Unit = {},
@@ -378,6 +377,7 @@ fun CccSettingsScreen(
     alertKinds: Set<String> = AlertKind.DEFAULT,
     persistent: Boolean = false,
     effects: Boolean = true,
+    connection: @Composable () -> Unit = {},
 ) {
     Scaffold(
         topBar = { Bar(stringResource(R.string.ccc_settings), null, actions.back) },
@@ -525,10 +525,7 @@ fun CccSettingsScreen(
                 }
             }
             if (tab == 5) item {
-                Section(stringResource(R.string.settings_connection)) {
-                    Text(stringResource(R.string.settings_connection_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-                    CccButton(onClick = actions.connection, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.connection)) }
-                }
+                connection()
             }
             if (tab != 3 && tab != 5) item {
                 CccButton(onClick = {

@@ -624,6 +624,50 @@ fun SetupScreen(
     language: String = "",
     onLanguage: (String) -> Unit = {},
 ) {
+    Scaffold(
+        topBar = { TopBar(stringResource(if (signedIn) R.string.connection else R.string.setup_title), onBack) },
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
+        SetupContent(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            server, signedIn, notifications, listDetails, onListDetail, onConnect, onNotifications, onSignOut,
+            devices, deviceHistory, onDevices, onSignOutDevice, invite, currentServer, onScan, onPair, onInviteDismissed,
+            language, onLanguage,
+        )
+    }
+}
+
+/** Everything of the connection (sign-in, phones, notifications of this phone, list details) — the screen and the Settings tab share it. */
+@Composable
+fun SetupContent(
+    modifier: Modifier,
+    server: String,
+    signedIn: Boolean,
+    notifications: Boolean,
+    listDetails: Set<String>,
+    onListDetail: (String, Boolean) -> Unit,
+    onConnect: (String, String, (Boolean) -> Unit) -> Unit,
+    onNotifications: (Boolean) -> Unit,
+    onSignOut: () -> Unit,
+    devices: List<Device>? = null,
+    deviceHistory: List<Device> = emptyList(),
+    onDevices: () -> Unit = {},
+    onSignOutDevice: (Device) -> Unit = {},
+    invite: PairingInvite? = null,
+    currentServer: String = "",
+    onScan: (String) -> Unit = {},
+    onPair: ((Boolean) -> Unit) -> Unit = {},
+    onInviteDismissed: () -> Unit = {},
+    language: String = "",
+    onLanguage: (String) -> Unit = {},
+    showLanguage: Boolean = true,
+) {
+
     val context = LocalContext.current
     var address by rememberSaveable { mutableStateOf(server) }
     var token by rememberSaveable { mutableStateOf("") }
@@ -695,25 +739,16 @@ fun SetupScreen(
         if (granted) onNotifications(true)
         else context.startActivity(notificationSettingsIntent(context))
     }
-    Scaffold(
-        topBar = { TopBar(stringResource(if (signedIn) R.string.connection else R.string.setup_title), onBack) },
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    Column(
+        modifier,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
             if (!signedIn) {
                 Text("ccc", style = MaterialTheme.typography.displaySmall, color = CccColors.Accent, fontWeight = FontWeight.Bold)
             } else {
                 ConnectionCard(server, devices?.firstOrNull { it.current }) { signOutSelfAsk = true }
             }
-            LanguageChoice(language, onLanguage)
+            if (showLanguage) LanguageChoice(language, onLanguage)
             if (!signedIn) {
             Text(stringResource(R.string.setup_intro), style = MaterialTheme.typography.bodyMedium, color = CccColors.Muted)
             CccButton(
@@ -811,7 +846,7 @@ fun SetupScreen(
                     }
                 }
             }
-        }
+
     }
 }
 
