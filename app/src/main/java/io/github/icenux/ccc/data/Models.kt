@@ -146,6 +146,8 @@ data class Queued(
     val id: Int,
     val text: String,
     @SerialName("not_before") val notBefore: String? = null,
+    /** ccc has taken it and waits for Claude Code to be free: it is on its way, not lost. */
+    val sending: Boolean = false,
 )
 
 @Serializable
