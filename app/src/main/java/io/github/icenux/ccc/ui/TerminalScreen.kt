@@ -30,6 +30,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.filter
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -56,7 +58,7 @@ private val FOREGROUND = Color(0xFFD0D0D0)
 /** Keys for Claude Code's menus and editing, as tmux names. */
 private val KEYS = listOf(
     "Esc" to "Escape", "Tab" to "Tab", "⇧Tab" to "BTab", "↑" to "Up", "↓" to "Down", "←" to "Left", "→" to "Right",
-    "Enter" to "Enter", "Ctrl+C" to "C-c", "Ctrl+R" to "C-r", "Ctrl+O" to "C-o", "⌫" to "BSpace",
+    "Enter" to "Enter", "PgUp" to "PageUp", "PgDn" to "PageDown", "Ctrl+C" to "C-c", "Ctrl+R" to "C-r", "Ctrl+O" to "C-o", "⌫" to "BSpace",
 )
 
 /** Quick answers to Claude Code's questions and menus, typed as they are. */
@@ -99,7 +101,12 @@ fun TerminalScreen(state: TerminalState, name: String, snackbar: SnackbarHostSta
     var draft by rememberSaveable { mutableStateOf("") }
     val vertical = rememberScrollState()
     val shown = state.terminal
-    LaunchedEffect(shown?.screen) { vertical.scrollTo(vertical.maxValue) }
+    // Follow the newest lines only while the person is at the bottom: scrolled up to read, the screen stays put.
+    var follow by remember { mutableStateOf(true) }
+    LaunchedEffect(vertical) {
+        snapshotFlow { vertical.isScrollInProgress }.filter { !it }.collect { follow = vertical.maxValue - vertical.value < 80 }
+    }
+    LaunchedEffect(shown?.screen) { if (follow) vertical.scrollTo(vertical.maxValue) }
     Scaffold(
         topBar = { Bar(stringResource(R.string.terminal), name, actions.back) },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -142,7 +149,9 @@ fun TerminalScreen(state: TerminalState, name: String, snackbar: SnackbarHostSta
                     .padding(6.dp),
             ) {
                 Text(
-                    remember(shown.screen) { screenText(shown.screen) },
+                    remember(shown.history, shown.screen) {
+                        screenText(if (shown.history.isBlank()) shown.screen else shown.history.trimEnd('\n') + "\n" + shown.screen)
+                    },
                     fontFamily = CccFonts.Mono,
                     fontSize = 11.sp,
                     lineHeight = 13.sp,
