@@ -414,7 +414,6 @@ private fun App(model: AppViewModel) {
                 action = { model.more.settingsAction(it, context.getString(R.string.done)) },
                 savePresets = model::savePromptPresets,
                 deleteLaunchPreset = model.more::deleteLaunchPreset,
-                backup = { model.more.backup(context.getString(R.string.backed_up)) },
                 notifications = model::setNotifications,
                 alertKinds = model::setAlertKinds,
                 persistent = model::setPersistent,

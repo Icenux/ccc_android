@@ -316,10 +316,6 @@ class CccApi(
         post<Unit>("launch-presets", json.encodeToString(LaunchChoice.serializer(), choice))
     }
 
-    suspend fun backup() {
-        post<Unit>("backup", "{}")
-    }
-
     suspend fun terminal(id: Int): Terminal = get("conversations/$id/terminal")
 
     /** Text into the conversation's Claude Code as one paste (and Enter, unless [submit] is false). */

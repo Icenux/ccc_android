@@ -356,7 +356,6 @@ class SettingsActions(
     val action: (String) -> Unit,
     val savePresets: (List<PromptPreset>) -> Unit,
     val deleteLaunchPreset: (String) -> Unit,
-    val backup: () -> Unit,
     val notifications: (Boolean) -> Unit = {},
     val alertKinds: (Set<String>) -> Unit = {},
     val persistent: (Boolean) -> Unit = {},
@@ -407,7 +406,7 @@ fun CccSettingsScreen(
         // kept together and one Save (on the tabs that have fields) sends them.
         var tab by rememberSaveable { mutableIntStateOf(initialTab) }
         val tabs = listOf(R.string.settings_general, R.string.settings_queues, R.string.settings_notifications,
-            R.string.tab_presets, R.string.settings_data, R.string.settings_connection)
+            R.string.tab_presets, R.string.settings_connection)
         if (choosing != "") {
             val on = if (choosing == "telegram") telegramOn else discordOn
             NotifyCategoriesDialog(
@@ -519,15 +518,9 @@ fun CccSettingsScreen(
                 }
             }
             if (tab == 4) item {
-                Section(stringResource(R.string.settings_data)) {
-                    Text(stringResource(R.string.backup_hint), style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
-                    CccButton(kind = ButtonKind.SECONDARY, onClick = actions.backup) { Text(stringResource(R.string.backup_now)) }
-                }
-            }
-            if (tab == 5) item {
                 connection()
             }
-            if (tab != 3 && tab != 5) item {
+            if (tab != 3 && tab != 4) item {
                 CccButton(onClick = {
                     actions.save(buildMap {
                         put("groups", JsonPrimitive(groups))
