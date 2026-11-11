@@ -80,6 +80,7 @@
     <string name="new_conversation">Nová konverzace</string>
     <string name="usage_five_hour">5 hodin</string>
     <string name="usage_seven_day">7 dní</string>
+    <string name="usage_resets">obnoví se %1$s (za %2$s)</string>
 
     <!-- Stavy (QueueStatus v ccc) -->
     <string name="status_idle">nečinná</string>
