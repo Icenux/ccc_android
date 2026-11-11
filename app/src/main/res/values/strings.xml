@@ -67,7 +67,8 @@
     <string name="app_downloading">Downloading…</string>
     <string name="app_update_button">Download and install</string>
     <string name="app_install_failed">The app could not be installed: %1$s</string>
-    <string name="app_allow_install">Allow installing from this app, then tap the button again.</string>
+    <string name="app_allow_install">Allow installing from this app, the install then carries on by itself.</string>
+    <string name="app_install_not_allowed">Installing from this app is not allowed, so the update was not installed.</string>
     <string name="app_new_version">A new version of the app is available: %1$s.</string>
     <string name="context_short">context %1$s</string>
     <string name="detail_context">Context</string>

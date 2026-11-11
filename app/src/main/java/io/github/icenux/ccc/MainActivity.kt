@@ -198,12 +198,17 @@ private fun App(model: AppViewModel) {
                 // Nothing may suspend before the settings screen opens: installStarted() above changes this
                 // effect's key, so the effect is cancelled at its first suspension (a waiting snackbar here
                 // meant the settings never opened and the update silently did nothing).
+                model.installWaitsForPermission(apk)
                 context.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")))
                 scope.launch { snackbar.showSnackbar(context.getString(R.string.app_allow_install)) }
                 return@let
             }
             ApkInstaller.install(context, apk)
         }
+    }
+    // Back from the "install unknown apps" settings: carry on with the download that waited for it.
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        model.installPermissionChecked(context.packageManager.canRequestPackageInstalls(), context.getString(R.string.app_install_not_allowed))
     }
     LaunchedEffect(message) {
         message?.let {

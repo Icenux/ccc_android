@@ -65,7 +65,8 @@
     <string name="app_downloading">Stahuji…</string>
     <string name="app_update_button">Stáhnout a nainstalovat</string>
     <string name="app_install_failed">Aplikaci se nepodařilo nainstalovat: %1$s</string>
-    <string name="app_allow_install">Povol instalaci z této aplikace a klepni znovu na tlačítko.</string>
+    <string name="app_allow_install">Povol instalaci z této aplikace, instalace pak naváže sama.</string>
+    <string name="app_install_not_allowed">Instalace z této aplikace není povolená, aktualizace se neinstalovala.</string>
     <string name="app_new_version">K dispozici je nová verze aplikace: %1$s.</string>
     <string name="context_short">kontext %1$s</string>
     <string name="detail_context">Kontext</string>
