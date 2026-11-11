@@ -303,9 +303,4 @@ class MoreModel(
         api.deleteLaunchPreset(name)
         _settings.value = api.settings()
     }
-
-    fun backup(done: String) = go { api ->
-        api.backup()
-        say(done)
-    }
 }

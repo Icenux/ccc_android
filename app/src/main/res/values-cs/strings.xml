@@ -194,9 +194,6 @@
     <string name="archived_months">Skončené měsíce archivovány.</string>
     <string name="archive_folder">Složka měsíčního archivu analytiky (prázdná = vypnuto)</string>
     <string name="archive_months">Archivovat skončené měsíce hned</string>
-    <string name="backed_up">Zálohováno.</string>
-    <string name="backup_hint">Záloha se dělá automaticky každý den; drží se 14 nejnovějších kopií.</string>
-    <string name="backup_now">Zálohovat hned</string>
     <string name="blocked_minutes">Celkový čas zablokovaný limity: %1$s min</string>
     <string name="ccc_settings">Nastavení</string>
     <string name="connection">Připojení k ccc</string>
@@ -309,7 +306,6 @@
     <string name="send_test">Poslat zkušební zprávu</string>
     <string name="choose_messages">Vybrat zprávy…</string>
     <string name="ok">OK</string>
-    <string name="settings_data">Data</string>
     <string name="settings_notifications">Notifikace</string>
     <string name="tab_presets">Předvolby</string>
     <string name="settings_connection">Připojení</string>

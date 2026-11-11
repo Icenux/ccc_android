@@ -197,7 +197,7 @@ open class ScreenshotsTest {
 
     @Test
     fun cccSettings() = shot("ccc_settings", "80 %") {
-        CccSettingsScreen(settingsState, home.promptPresets, SnackbarHostState(), SettingsActions({}, {}, {}, {}, {}, {}, {}), initialTab = 1)
+        CccSettingsScreen(settingsState, home.promptPresets, SnackbarHostState(), SettingsActions({}, {}, {}, {}, {}), initialTab = 1)
     }
 
     /** The phone speaks [locale]; the app is set to the other language — the point of the app's own choice. */
@@ -212,7 +212,7 @@ open class ScreenshotsTest {
         shot("ccc_settings_general", label) {
             CompositionLocalProvider(LocalContext provides wrapped, LocalConfiguration provides wrapped.resources.configuration) {
                 CccSettingsScreen(settingsState.copy(groupsChoices = groups), home.promptPresets, SnackbarHostState(),
-                    SettingsActions({}, {}, {}, {}, {}, {}, {}), initialTab = 0, language = appLanguage)
+                    SettingsActions({}, {}, {}, {}, {}), initialTab = 0, language = appLanguage)
             }
         }
     }

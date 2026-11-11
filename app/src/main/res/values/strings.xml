@@ -196,9 +196,6 @@
     <string name="archived_months">Finished months archived.</string>
     <string name="archive_folder">Monthly analytics archive folder (empty = off)</string>
     <string name="archive_months">Archive finished months now</string>
-    <string name="backed_up">Backed up.</string>
-    <string name="backup_hint">Backed up automatically every day; the newest 14 copies are kept.</string>
-    <string name="backup_now">Back up now</string>
     <string name="blocked_minutes">Total time blocked on rate limits: %1$s min</string>
     <string name="ccc_settings">Settings</string>
     <string name="connection">Connection to ccc</string>
@@ -311,7 +308,6 @@
     <string name="send_test">Send test message</string>
     <string name="choose_messages">Choose messages…</string>
     <string name="ok">OK</string>
-    <string name="settings_data">Data</string>
     <string name="settings_notifications">Notifications</string>
     <string name="tab_presets">Presets</string>
     <string name="settings_connection">Connection</string>
