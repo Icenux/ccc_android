@@ -135,6 +135,7 @@ class WatchService : Service() {
         } else {
             null
         }
+        lastStats = stats
         try {
             NotificationManagerCompat.from(this).notify(WATCH_ID, watching(this, stats))
         } catch (e: SecurityException) {
@@ -150,6 +151,24 @@ class WatchService : Service() {
         const val WATCH_ID = 1
         const val ALERT_ID = 2
         const val EXTRA_CONVERSATION = "conversation"
+
+        /** What the lasting notification showed last: put back as it was when it is swiped away. */
+        @Volatile
+        private var lastStats: Pair<String, String>? = null
+
+        /**
+         * The lasting notification was swiped away (Android 14+ lets you swipe even an ongoing one):
+         * back it comes. Only its switch in Settings takes it away.
+         */
+        fun restoreWatching(context: Context) {
+            val settings = Settings(context)
+            if (!settings.configured || !settings.notifications || !settings.persistent) return
+            try {
+                NotificationManagerCompat.from(context).notify(WATCH_ID, watching(context, lastStats))
+            } catch (e: SecurityException) {
+                // Notifications aren't allowed (Android 13+): nothing to show.
+            }
+        }
 
         /** Start or stop watching, as the setting says. */
         fun sync(context: Context) {
@@ -168,6 +187,7 @@ class WatchService : Service() {
                 .setSmallIcon(R.drawable.ic_notification)
                 .setLargeIcon(largeIcon(context))
                 .setContentIntent(openApp(context, null))
+                .setDeleteIntent(WatchDismissedReceiver.intent(context))
                 .setOngoing(true)
                 .setSilent(true)
                 .setOnlyAlertOnce(true)

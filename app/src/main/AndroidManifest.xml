@@ -61,6 +61,11 @@
             android:name=".notify.ApprovalReceiver"
             android:exported="false" />
 
+        <!-- The lasting notification swiped away: shown again (notify.WatchService). -->
+        <receiver
+            android:name=".notify.WatchDismissedReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".notify.BootReceiver"
             android:exported="true">
