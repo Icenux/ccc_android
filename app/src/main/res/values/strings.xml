@@ -82,6 +82,7 @@
     <string name="new_conversation">New conversation</string>
     <string name="usage_five_hour">5 hours</string>
     <string name="usage_seven_day">7 days</string>
+    <string name="usage_resets">resets %1$s (in %2$s)</string>
 
     <!-- States (ccc\'s QueueStatus) -->
     <string name="status_idle">idle</string>

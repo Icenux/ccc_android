@@ -168,9 +168,42 @@ fun ApprovalCard(
 @Composable
 fun UsageCard(usage: Usage, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        usage.fiveHour?.let { UsageRow(stringResource(R.string.usage_five_hour), it.percent) }
-        usage.sevenDay?.let { UsageRow(stringResource(R.string.usage_seven_day), it.percent) }
+        usage.fiveHour?.let { UsageWithReset(stringResource(R.string.usage_five_hour), it.percent, it.resetsAt) }
+        usage.sevenDay?.let { UsageWithReset(stringResource(R.string.usage_seven_day), it.percent, it.resetsAt) }
+        usage.perModel.forEach { UsageWithReset(it.model, it.percent, it.resetsAt) }
     }
+}
+
+/** A limit's bar with, under it, when that limit resets (and how long that is from now). */
+@Composable
+private fun UsageWithReset(label: String, percent: Double, resetsAt: String?) {
+    Column {
+        UsageRow(label, percent)
+        val reset = resetsAt?.let { resetLabel(it) }
+        if (reset != null) {
+            Text(
+                stringResource(R.string.usage_resets, reset.first, reset.second),
+                Modifier.padding(start = 72.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = CccColors.Dim,
+            )
+        }
+    }
+}
+
+/** (clock time with weekday when not today, time left) for an ISO reset moment; null when unreadable. */
+internal fun resetLabel(iso: String, now: java.time.ZonedDateTime = java.time.ZonedDateTime.now()): Pair<String, String>? {
+    val time = runCatching { OffsetDateTime.parse(iso).atZoneSameInstant(now.zone) }.getOrNull() ?: return null
+    val clock = time.format(DateTimeFormatter.ofPattern(if (time.toLocalDate() == now.toLocalDate()) "HH:mm" else "EEE HH:mm"))
+    val minutes = java.time.Duration.between(now, time).toMinutes().coerceAtLeast(0)
+    val days = minutes / (24 * 60)
+    val hours = minutes % (24 * 60) / 60
+    val left = when {
+        days > 0 -> "$days d $hours h"
+        hours > 0 -> "$hours h ${minutes % 60} min"
+        else -> "$minutes min"
+    }
+    return clock to left
 }
 
 /**
