@@ -122,6 +122,9 @@ class ConversationsActions(
     val promptSession: (String, String) -> Unit = { _, _ -> },
     val applyUpdate: () -> Unit = {},
     val restartCcc: () -> Unit = {},
+    /** The long-press menu of a card: archive (true) or restore (false), delete. */
+    val archive: (Int, Boolean) -> Unit = { _, _ -> },
+    val delete: (Int) -> Unit = {},
     val updateApp: () -> Unit = {},
     /** A Dashboard row: the conversation's overview. */
     val openQueue: (Int) -> Unit = {},
@@ -146,6 +149,8 @@ fun ConversationsScreen(
 ) {
     var groupMenu by remember { mutableStateOf<String?>(null) }
     var newTask by remember { mutableStateOf(false) }
+    var cardMenu by remember { mutableStateOf<Conversation?>(null) }
+    val onCardMenu: (Conversation) -> Unit = { cardMenu = it }
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             when (state.tab) {
@@ -157,7 +162,7 @@ fun ConversationsScreen(
                     FrameIconButton(actions.search) { Icon(Icons.Filled.Search, stringResource(R.string.search), tint = CccColors.Cyan) }
                     ApprovalsBell(state, actions)
                 }
-                HomeTab.TASKS -> QueueHeader(state)
+                HomeTab.TASKS -> QueueHeader(state) { actions.tab(HomeTab.DASHBOARD) }
                 HomeTab.SESSIONS -> HudHeader(stringResource(R.string.live_sessions), sessions?.let { stringResource(R.string.sessions_count, it.size) })
             }
             OfflineBanner(state)
@@ -167,10 +172,10 @@ fun ConversationsScreen(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when (state.tab) {
-                    HomeTab.DASHBOARD -> Dashboard(state, listDetails, newVersion, actions, appUpdate)
+                    HomeTab.DASHBOARD -> Dashboard(state, listDetails, newVersion, actions, appUpdate, onCardMenu)
                     HomeTab.SESSIONS -> LiveSessionsList(sessions, actions.promptSession)
                     HomeTab.TASKS -> QueueTab(state, actions)
-                    else -> ConversationList(state, listDetails, newVersion, actions, appUpdate) { groupMenu = it }
+                    else -> ConversationList(state, listDetails, newVersion, actions, appUpdate, onCardMenu) { groupMenu = it }
                 }
             }
         }
@@ -188,6 +193,7 @@ fun ConversationsScreen(
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
     groupMenu?.let { name -> GroupDialog(name, actions, onClose = { groupMenu = null }) }
+    cardMenu?.let { conversation -> CardMenuDialog(conversation, actions, onClose = { cardMenu = null }) }
     if (newTask) NewTaskDialog(state.conversations, onClose = { newTask = false }, onAdd = actions.addTask)
 }
 
@@ -227,30 +233,23 @@ private fun OfflineBanner(state: HomeState) {
     }
 }
 
-/** The Dashboard's top: the daemon's state on the left, the bell with the approvals on the right. */
+/** The Dashboard's top: its title, the search and the bell with the approvals. (The daemon's state is in the side menu.) */
 @Composable
 private fun DashboardHeader(state: HomeState, actions: ConversationsActions) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Column(Modifier.weight(1f)) { DaemonLine(state, actions.restartCcc) }
-        FrameIconButton(actions.search) { Icon(Icons.Filled.Search, stringResource(R.string.search), tint = CccColors.Dim) }
+    HudHeader(stringResource(R.string.dashboard)) {
+        FrameIconButton(actions.search) { Icon(Icons.Filled.Search, stringResource(R.string.search), tint = CccColors.Cyan) }
         ApprovalsBell(state, actions)
     }
 }
 
 @Composable
-private fun QueueHeader(state: HomeState) {
+private fun QueueHeader(state: HomeState, onBack: () -> Unit) {
     val queue = state.queue.orEmpty()
     HudHeader(
         stringResource(R.string.tasks),
         stringResource(R.string.queue_waiting, queue.size) +
             queue.count { it.task.byRoutine }.takeIf { it > 0 }?.let { " · " + stringResource(R.string.queue_from_routines, it) }.orEmpty(),
+        onBack = onBack,
     )
 }
 
@@ -261,6 +260,7 @@ private fun ConversationList(
     newVersion: AppRelease? = null,
     actions: ConversationsActions,
     appUpdate: AppUpdateState,
+    onCardMenu: (Conversation) -> Unit,
     onGroupMenu: (String) -> Unit,
 ) {
     val filter = ListFilter.of(state.filterStates, state.filter)
@@ -299,6 +299,7 @@ private fun ConversationList(
                 ConversationCard(
                     conversation, listDetails,
                     Modifier.animateItem().staggeredEntry(index),
+                    onLongClick = { onCardMenu(conversation) },
                 ) { actions.open(conversation.id) }
             }
         }
@@ -317,7 +318,10 @@ private fun LazyListScope.banners(state: HomeState, newVersion: AppRelease?, act
 
 /** The overview: who needs you, the counts, then every conversation with its state. */
 @Composable
-private fun Dashboard(state: HomeState, listDetails: Set<String>, newVersion: AppRelease?, actions: ConversationsActions, appUpdate: AppUpdateState) {
+private fun Dashboard(
+    state: HomeState, listDetails: Set<String>, newVersion: AppRelease?, actions: ConversationsActions, appUpdate: AppUpdateState,
+    onCardMenu: (Conversation) -> Unit,
+) {
     val all = state.conversations
     val blocked = all.count { it.state == ConversationStatus.BLOCKED_ERROR }
     val running = all.count { it.state == ConversationStatus.RUNNING }
@@ -354,7 +358,7 @@ private fun Dashboard(state: HomeState, listDetails: Set<String>, newVersion: Ap
             }
         }
         itemsIndexed(all, key = { _, c -> "dash:${c.id}" }) { index, conversation ->
-            ConversationCard(conversation, listDetails, Modifier.animateItem().staggeredEntry(index)) { actions.openQueue(conversation.id) }
+            ConversationCard(conversation, listDetails, Modifier.animateItem().staggeredEntry(index), onLongClick = { onCardMenu(conversation) }) { actions.openQueue(conversation.id) }
         }
     }
 }
@@ -367,7 +371,7 @@ internal fun tokenText(tokens: Long): String = when {
 }
 
 @Composable
-private fun DaemonLine(state: HomeState, onRestart: () -> Unit) {
+internal fun DaemonLine(state: HomeState, onRestart: () -> Unit) {
     val (text, color) = when {
         !state.live && state.loaded -> stringResource(R.string.offline) to CccColors.Amber
         state.status?.daemonRunning == true -> stringResource(R.string.daemon_running) to CccColors.Cyan
@@ -634,7 +638,10 @@ internal fun initials(name: String): String {
  * (running pulses, needs approval blinks slowly, an error stands still), then what [details] ask for.
  */
 @Composable
-internal fun ConversationCard(conversation: Conversation, details: Set<String>, modifier: Modifier = Modifier, onClick: () -> Unit) {
+@OptIn(ExperimentalFoundationApi::class)
+internal fun ConversationCard(
+    conversation: Conversation, details: Set<String>, modifier: Modifier = Modifier, onLongClick: (() -> Unit)? = null, onClick: () -> Unit,
+) {
     val state = conversation.state
     val color = statusColor(state, conversation.needsApproval)
     val approval = conversation.needsApproval
@@ -647,7 +654,7 @@ internal fun ConversationCard(conversation: Conversation, details: Set<String>, 
             .clip(shape)
             .background(if (approval) CccColors.Amber.copy(alpha = 0.07f).compositeOver(CccColors.Surface) else CccColors.Surface, shape)
             .border(1.dp, if (approval) CccColors.Amber.copy(alpha = 0.8f) else CccColors.Line, shape)
-            .clickable(onClick = onClick),
+            .combinedClickable(onLongClick = onLongClick, onClick = onClick),
     ) {
         Box(Modifier.width(3.dp).fillMaxHeight().background(color))
         Row(Modifier.padding(horizontal = 12.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -740,5 +747,41 @@ fun UpdateOutcomeDialog(outcome: AppViewModel.UpdateOutcome, onClose: () -> Unit
         },
         text = { Text(outcome.text) },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.ok)) } },
+    )
+}
+
+/** The long press on a conversation: archive (or restore) it, or delete it after asking. */
+@Composable
+private fun CardMenuDialog(conversation: Conversation, actions: ConversationsActions, onClose: () -> Unit) {
+    var confirmDelete by remember { mutableStateOf(false) }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = onClose,
+            title = { Text(stringResource(R.string.delete_title)) },
+            text = { Text(stringResource(R.string.delete_text, conversation.name)) },
+            confirmButton = {
+                TextButton(onClick = { onClose(); actions.delete(conversation.id) }) {
+                    Text(stringResource(R.string.delete), color = CccColors.Error)
+                }
+            },
+            dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.cancel)) } },
+        )
+        return
+    }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(conversation.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        text = {
+            Column {
+                TextButton(onClick = { onClose(); actions.archive(conversation.id, !conversation.archived) }, Modifier.fillMaxWidth()) {
+                    Text(stringResource(if (conversation.archived) R.string.restore else R.string.archive_it), Modifier.fillMaxWidth())
+                }
+                TextButton(onClick = { confirmDelete = true }, Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.delete), Modifier.fillMaxWidth(), color = CccColors.Error)
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.cancel)) } },
     )
 }

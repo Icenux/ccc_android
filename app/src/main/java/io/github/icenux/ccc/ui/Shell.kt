@@ -75,18 +75,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** The four places of the bottom bar. More opens the side menu. */
-enum class Dest { DASHBOARD, CHATS, TASKS, MORE }
+enum class Dest { DASHBOARD, CHATS, ANALYTICS, MORE }
 
 /** Which place of the bottom bar a screen belongs to (the lit one). */
 fun destOf(screen: Screen, tab: HomeTab): Dest = when (screen) {
     Screen.Conversations -> when (tab) {
         HomeTab.DASHBOARD -> Dest.DASHBOARD
         HomeTab.CONVERSATIONS, HomeTab.ARCHIVE -> Dest.CHATS
-        HomeTab.TASKS -> Dest.TASKS
-        HomeTab.SESSIONS -> Dest.MORE
+        HomeTab.TASKS, HomeTab.SESSIONS -> Dest.MORE
     }
     is Screen.Conversation, is Screen.ConversationDetail, Screen.Search -> Dest.CHATS
-    is Screen.Tasks -> Dest.TASKS
+    Screen.Analytics -> Dest.ANALYTICS
     else -> Dest.MORE
 }
 
@@ -112,6 +111,7 @@ class ShellActions(
     val screen: (Screen) -> Unit,
     val notifications: (Boolean) -> Unit,
     val effects: (Boolean) -> Unit,
+    val restart: () -> Unit = {},
 )
 
 /**
@@ -125,6 +125,20 @@ fun AppShell(state: ShellState, actions: ShellActions, content: @Composable () -
     val bar = hasBottomBar(state.screen)
     val selected = destOf(state.screen, state.home.tab)
     val close: () -> Unit = { scope.launch { drawer.close() } }
+    // A swipe on the menu puts the keyboard away as soon as the menu starts to move.
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    LaunchedEffect(drawer) {
+        var closedAt = Float.NaN
+        androidx.compose.runtime.snapshotFlow { drawer.currentOffset }.collect { offset ->
+            if (offset.isNaN()) return@collect
+            if (closedAt.isNaN() || offset < closedAt) closedAt = offset
+            if (offset > closedAt + 1f) {
+                keyboard?.hide()
+                focus.clearFocus()
+            }
+        }
+    }
     ModalNavigationDrawer(
         drawerState = drawer,
         gesturesEnabled = state.screen != Screen.Setup,
@@ -148,7 +162,7 @@ fun AppShell(state: ShellState, actions: ShellActions, content: @Composable () -
                         when (dest) {
                             Dest.DASHBOARD -> actions.tab(HomeTab.DASHBOARD)
                             Dest.CHATS -> actions.tab(HomeTab.CONVERSATIONS)
-                            Dest.TASKS -> actions.tab(HomeTab.TASKS)
+                            Dest.ANALYTICS -> actions.screen(Screen.Analytics)
                             Dest.MORE -> scope.launch { drawer.open() }
                         }
                     }
@@ -165,7 +179,7 @@ private class NavItem(val dest: Dest, val icon: ImageVector, val label: Int)
 private val NAV = listOf(
     NavItem(Dest.DASHBOARD, HudIcons.Dashboard, R.string.nav_dashboard),
     NavItem(Dest.CHATS, HudIcons.Chats, R.string.nav_chats),
-    NavItem(Dest.TASKS, HudIcons.Tasks, R.string.nav_tasks),
+    NavItem(Dest.ANALYTICS, HudIcons.Analytics, R.string.analytics),
     NavItem(Dest.MORE, HudIcons.More, R.string.more),
 )
 
@@ -244,7 +258,6 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
     val purple = Color(0xFFA78BFA)
     val pink = Color(0xFFFF6B9A)
     val places = listOf(
-        MenuEntry(HudIcons.Dashboard, stringResource(R.string.dashboard), CccColors.Cyan, onMain && home.tab == HomeTab.DASHBOARD) { it.tab(HomeTab.DASHBOARD) },
         MenuEntry(HudIcons.Shield, stringResource(R.string.approvals), CccColors.Red, screen == Screen.Approvals,
             home.permissions.size.takeIf { it > 0 }?.toString(), CccColors.Red) { it.screen(Screen.Approvals) },
         MenuEntry(HudIcons.Tasks, stringResource(R.string.tasks), CccColors.Amber, onMain && home.tab == HomeTab.TASKS,
@@ -257,7 +270,6 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
             state.liveSessions?.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.SESSIONS) },
     )
     val system = listOf(
-        MenuEntry(HudIcons.Analytics, stringResource(R.string.analytics), CccColors.Faint, screen == Screen.Analytics) { it.screen(Screen.Analytics) },
         MenuEntry(HudIcons.Sliders, stringResource(R.string.ccc_settings), CccColors.Faint, screen == Screen.CccSettings) { it.screen(Screen.CccSettings) },
     )
     // The entries jump in one after another (30 ms apart) each time the menu opens.
@@ -277,7 +289,7 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
         ) {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 Spacer(Modifier.height(12.dp))
-                MenuHeader(state, onClose)
+                MenuHeader(state, actions, onClose)
                 var index = 0
                 Caption(stringResource(R.string.menu_section_ccc), Modifier.padding(start = 8.dp, top = 22.dp, bottom = 8.dp))
                 places.forEach { entry -> MenuRow(entry, index++, opening, big = true) { onGo(entry.go) } }
@@ -291,32 +303,16 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
 }
 
 @Composable
-private fun MenuHeader(state: ShellState, onClose: () -> Unit) {
+private fun MenuHeader(state: ShellState, actions: ShellActions, onClose: () -> Unit) {
     val host = remember(state.server) {
         runCatching { java.net.URI(state.server.trim().let { if ("://" in it) it else "https://$it" }).host }.getOrNull() ?: state.server
     }
-    val shape = RoundedCornerShape(6.dp)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(
-            Modifier.size(52.dp).clip(shape).background(CccColors.CyanSoft, shape).border(1.dp, CccColors.LineBright, shape),
-            contentAlignment = Alignment.Center,
-        ) { Text("PH", style = MaterialTheme.typography.titleLarge, color = CccColors.Cyan, fontWeight = FontWeight.Bold) }
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.menu_this_phone), style = MaterialTheme.typography.titleMedium, color = CccColors.Text, maxLines = 1)
-            Text(host.orEmpty(), style = MaterialTheme.typography.labelMedium, color = CccColors.Faint, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(host.orEmpty(), style = MaterialTheme.typography.titleMedium, color = CccColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            DaemonLine(state.home, actions.restart)
         }
         FrameIconButton(onClose) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, stringResource(R.string.close), tint = CccColors.Dim) }
-    }
-    Spacer(Modifier.height(12.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        CccChip(stringResource(R.string.menu_paired).uppercase(), color = CccColors.Cyan, filled = true)
-        CccChip(stringResource(R.string.menu_conversations, state.home.conversations.size), color = CccColors.Dim)
-        val live = state.home.live
-        CccChip(
-            stringResource(if (live) R.string.menu_connected else R.string.menu_offline),
-            color = if (live) CccColors.Cyan else CccColors.Amber,
-            dot = true,
-        )
     }
 }
 

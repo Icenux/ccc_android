@@ -37,6 +37,7 @@ import io.github.icenux.ccc.ui.theme.CccFonts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -47,6 +48,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import io.github.icenux.ccc.data.Elapsed
 import io.github.icenux.ccc.data.Permission
 import io.github.icenux.ccc.data.PromptPreset
 import io.github.icenux.ccc.data.mentionAt
@@ -115,6 +117,8 @@ class ConversationActions(
     val terminal: () -> Unit,
     /** Answer Claude Code's question in the terminal with option n (null: Esc). */
     val answerPrompt: (io.github.icenux.ccc.data.TerminalPrompt, Int?) -> Unit = { _, _ -> },
+    /** While Claude works: into the terminal at once instead of the queue (interactive conversations). */
+    val sendNow: (String, () -> Unit) -> Unit = { _, _ -> },
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -146,6 +150,8 @@ fun ConversationScreen(
     }
     val newest = state.messages.lastOrNull()?.index
     val queuedCount = detail?.queued?.size ?: 0
+    val took = remember(state.messages, detail?.state) { Elapsed.turns(state.messages, running = detail?.state == ConversationStatus.RUNNING) }
+    val since = remember(state.messages) { Elapsed.runningSince(state.messages) }
     LaunchedEffect(newest, queuedCount, working) {
         if (atBottom) list.animateScrollToItem(0)
     }
@@ -199,7 +205,6 @@ fun ConversationScreen(
                     }
                 }
             }
-            if (working) ScanLine()
           }
         },
         snackbarHost = { SnackbarHost(snackbar) },
@@ -256,6 +261,13 @@ fun ConversationScreen(
                         }
                     }
                 }
+                if (working && draft.text.isNotBlank() && !state.sending &&
+                    (detail?.deliveryMode == "interactive" || detail?.deliveryMode == "remote_control")) {
+                    TextButton(
+                        onClick = { actions.sendNow(draft.text) { draft = TextFieldValue("") } },
+                        modifier = Modifier.align(Alignment.End),
+                    ) { Text(stringResource(R.string.send_immediately), color = CccColors.Amber) }
+                }
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = draft,
@@ -299,13 +311,13 @@ fun ConversationScreen(
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom),
         ) {
-            if (working) item(key = "working") { WorkingIndicator(Modifier.animateItem()) }
+            if (working) item(key = "working") { WorkingIndicator(since, Modifier.animateItem()) }
             detail?.queued?.reversed()?.let { queued ->
                 items(queued, key = { "queued:${it.id}" }) { QueuedBubble(it.text, Modifier.animateItem()) }
             }
             items(state.messages.reversed(), key = { it.index }) { message ->
                 val streaming = message.index == newest && message.kind == "assistant_text" && detail?.state == ConversationStatus.RUNNING
-                MessageItem(message, streaming, Modifier.animateItem())
+                MessageItem(message, streaming, took[message.index], Modifier.animateItem())
             }
             if (detail != null && state.messages.isEmpty() && detail.queued.isEmpty()) {
                 item(key = "empty") {
@@ -448,11 +460,11 @@ private fun Header(detail: io.github.icenux.ccc.data.ConversationDetail) {
 }
 
 @Composable
-private fun MessageItem(message: Message, streaming: Boolean, modifier: Modifier) {
+private fun MessageItem(message: Message, streaming: Boolean, took: Long?, modifier: Modifier) {
     when (message.kind) {
         "human" -> Bubble(stringResource(R.string.you), message.text, shortTime(message.time), CccColors.Human, modifier, end = true)
         "assistant_text" -> Bubble(stringResource(R.string.claude), message.text, shortTime(message.time), CccColors.Claude, modifier,
-            markdown = true, cursor = streaming)
+            markdown = true, cursor = streaming, took = took?.let { stringResource(R.string.took_for, Elapsed.text(it)) })
         else -> ToolLine(message, modifier)
     }
 }
@@ -460,7 +472,7 @@ private fun MessageItem(message: Message, streaming: Boolean, modifier: Modifier
 @Composable
 private fun Bubble(
     who: String, text: String, time: String?, color: androidx.compose.ui.graphics.Color, modifier: Modifier, end: Boolean = false,
-    markdown: Boolean = false, cursor: Boolean = false,
+    markdown: Boolean = false, cursor: Boolean = false, took: String? = null,
 ) {
     val shape = RoundedCornerShape(6.dp)
     Box(modifier.fillMaxWidth(), contentAlignment = if (end) Alignment.CenterEnd else Alignment.CenterStart) {
@@ -477,6 +489,10 @@ private fun Bubble(
                 time?.let {
                     Spacer(Modifier.width(8.dp))
                     Text(it, style = MaterialTheme.typography.labelMedium, color = CccColors.Faint)
+                }
+                took?.let {
+                    Spacer(Modifier.width(8.dp))
+                    Text("· $it", style = MaterialTheme.typography.labelMedium, color = CccColors.Faint)
                 }
             }
             Spacer(Modifier.height(4.dp))
@@ -540,32 +556,16 @@ private fun ToolLine(message: Message, modifier: Modifier) {
 }
 
 
-/** A thin light that runs along the bottom edge of the header for as long as Claude works. */
-@Composable
-private fun ScanLine() {
-    val progress: State<Float>? = if (effects().loops) {
-        rememberInfiniteTransition(label = "scan").animateFloat(
-            -0.3f, 1f, infiniteRepeatable(androidx.compose.animation.core.tween(1500, easing = androidx.compose.animation.core.LinearEasing)),
-            label = "scan-progress",
-        )
-    } else null
-    Box(
-        Modifier.fillMaxWidth().height(2.dp).background(CccColors.Line).drawBehind {
-            val w = size.width
-            val p = progress?.value ?: 0.5f
-            drawRect(
-                androidx.compose.ui.graphics.Brush.horizontalGradient(
-                    listOf(androidx.compose.ui.graphics.Color.Transparent, CccColors.Cyan, androidx.compose.ui.graphics.Color.Transparent),
-                    startX = w * p, endX = w * (p + 0.3f),
-                ),
-            )
-        },
-    )
-}
-
 /** "Claude is working" with three dots that jump one after another — under the newest message. */
 @Composable
-private fun WorkingIndicator(modifier: Modifier = Modifier) {
+private fun WorkingIndicator(since: java.time.Instant?, modifier: Modifier = Modifier) {
+    var now by remember { mutableStateOf(java.time.Instant.now()) }
+    LaunchedEffect(since) {
+        while (since != null) {
+            now = java.time.Instant.now()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
     val loops = effects().loops
     val transition = rememberInfiniteTransition(label = "working")
     Row(modifier.padding(horizontal = 4.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -580,7 +580,10 @@ private fun WorkingIndicator(modifier: Modifier = Modifier) {
             GlowDot(CccColors.Cyan, Modifier.graphicsLayer { alpha = level?.value ?: 1f }.padding(end = 6.dp), size = 7.dp)
         }
         Spacer(Modifier.width(4.dp))
-        Text(stringResource(R.string.claude_working), style = MaterialTheme.typography.labelMedium, color = CccColors.Cyan)
+        Text(
+            if (since != null && now > since) stringResource(R.string.claude_working_for, Elapsed.text(now.epochSecond - since.epochSecond)) else stringResource(R.string.claude_working),
+            style = MaterialTheme.typography.labelMedium, color = CccColors.Cyan,
+        )
     }
 }
 
@@ -590,6 +593,21 @@ private fun WorkingIndicator(modifier: Modifier = Modifier) {
 private fun PromptCard(prompt: io.github.icenux.ccc.data.TerminalPrompt, onAnswer: (io.github.icenux.ccc.data.TerminalPrompt, Int?) -> Unit, onTerminal: () -> Unit, modifier: Modifier) {
     HudPanel(modifier, accent = CccColors.Amber, brackets = false, glow = true, contentPadding = PaddingValues(14.dp)) {
         Text(stringResource(R.string.prompt_title), style = MaterialTheme.typography.titleSmall, color = CccColors.Amber)
+        if (prompt.body.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 200.dp)
+                    .background(CccColors.Background, RoundedCornerShape(6.dp))
+                    .border(1.dp, CccColors.Line, RoundedCornerShape(6.dp))
+                    .verticalScroll(rememberScrollState())
+                    .horizontalScroll(rememberScrollState())
+                    .padding(10.dp),
+            ) {
+                Text(prompt.body, fontFamily = CccFonts.Mono, style = MaterialTheme.typography.bodySmall, color = CccColors.Cyan)
+            }
+        }
         if (prompt.question.isNotBlank()) {
             Spacer(Modifier.height(6.dp))
             Text((if (prompt.truncated) "… " else "") + prompt.question, style = MaterialTheme.typography.bodyMedium, color = CccColors.Text)

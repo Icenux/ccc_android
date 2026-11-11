@@ -793,6 +793,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Not into the queue but straight into the running session's terminal (like typing it in the TUI). */
+    fun sendNow(text: String, onSent: () -> Unit) {
+        val state = _conversation.value ?: return
+        val client = api ?: return
+        if (text.isBlank() || state.sending) return
+        _conversation.update { it?.copy(sending = true) }
+        viewModelScope.launch {
+            val sent = guard {
+                client.terminalPaste(state.id, text, true)
+                reloadConversation(state.id)
+            }
+            _conversation.update { it?.copy(sending = false) }
+            if (sent) onSent()
+        }
+    }
+
     fun retry() {
         val state = _conversation.value ?: return
         val client = api ?: return

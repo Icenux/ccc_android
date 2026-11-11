@@ -276,6 +276,8 @@ private fun App(model: AppViewModel) {
                 promptSession = { id, prompt -> model.more.promptSession(id, prompt, context.getString(R.string.prompt_queued)) },
                 applyUpdate = model::applyUpdate,
                 restartCcc = model::restartCcc,
+                archive = model::archive,
+                delete = model::delete,
             ),
         )
         is Screen.Conversation -> conversation?.takeIf { it.id == screen.id }?.let {
@@ -287,6 +289,7 @@ private fun App(model: AppViewModel) {
                 actions = ConversationActions(
                     back = model::back,
                     send = model::send,
+                    sendNow = model::sendNow,
                     retry = model::retry,
                     loadOlder = model::loadOlder,
                     decide = model::decide,
@@ -478,6 +481,7 @@ private fun App(model: AppViewModel) {
             screen = { model.goTo(it) },
             notifications = model::setNotifications,
             effects = model::setEffects,
+            restart = model::restartCcc,
         ),
     ) {
         androidx.compose.animation.AnimatedContent(
