@@ -458,4 +458,25 @@
     <string name="persistent_limit_7d">7 d %1$d %%</string>
     <string name="persistent_limit_unknown">Limit unknown</string>
     <string name="persistent_counts">%1$d conversations · %2$d need you</string>
+    <string name="command_output">Command output</string>
+    <string name="slash_clear">Clear the context and start over</string>
+    <string name="slash_compact">Shorten the conversation with a summary</string>
+    <string name="slash_context">How much context is used</string>
+    <string name="slash_cost">Token use and cost</string>
+    <string name="slash_usage">Account usage limits</string>
+    <string name="slash_model">Change the model</string>
+    <string name="slash_resume">Continue an earlier conversation</string>
+    <string name="slash_review">Review a pull request</string>
+    <string name="slash_memory">Edit memory (CLAUDE.md)</string>
+    <string name="slash_init">Create a CLAUDE.md</string>
+    <string name="slash_help">Help and the list of commands</string>
+    <string name="slash_config">Claude Code settings</string>
+    <string name="slash_mcp">MCP servers</string>
+    <string name="slash_agents">Manage subagents</string>
+    <string name="slash_permissions">Tool permissions</string>
+    <string name="slash_status">Status, version and account</string>
+    <string name="slash_doctor">Check the installation</string>
+    <string name="slash_rewind">Rewind the conversation or code</string>
+    <string name="slash_export">Export the conversation</string>
+    <string name="slash_todos">The task list</string>
 </resources>

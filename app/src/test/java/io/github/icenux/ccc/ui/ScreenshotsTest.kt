@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -143,6 +144,26 @@ open class ScreenshotsTest {
             conversation.copy(mentions = listOf("src/api/limits.py", "src/api/orders.py", "tests/api/test_limits.py")),
             home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions,
         )
+    }
+
+    @Test
+    fun slashCommands() = shot("slash_commands", "/model opus") {
+        val ran = "<command-name>/model</command-name>\n<command-message>model</command-message>\n<command-args>opus</command-args>"
+        ConversationScreen(
+            conversation.copy(messages = conversation.messages + listOf(
+                Message(5, "human", "<local-command-caveat>Caveat: not a request</local-command-caveat>", "2026-10-21T18:14:00+00:00"),
+                Message(6, "human", ran, "2026-10-21T18:14:00+00:00"),
+                Message(7, "human", "<local-command-stdout>Set model to opus</local-command-stdout>", "2026-10-21T18:14:00+00:00"),
+            )),
+            home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions,
+        )
+    }
+
+    @Test
+    fun slashMenu() = shot("slash_menu", "Rate limiting added", act = {
+        compose.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("/co")
+    }) {
+        ConversationScreen(conversation, home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions)
     }
 
     @Test
