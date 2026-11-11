@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 
 private const val TERMINAL_REFRESH_MS = 1_000L
+private const val TERMINAL_HISTORY_LINES = 2_000
+private const val TERMINAL_HISTORY_EVERY = 10
 
 /** Conversation [id]'s Claude Code as last seen; [error] when it can't be shown. */
 data class TerminalState(val id: Int, val terminal: io.github.icenux.ccc.data.Terminal? = null, val error: String? = null)
@@ -239,12 +241,21 @@ class MoreModel(
         _terminal.value = TerminalState(id)
         watching?.cancel()
         watching = scope.launch {
+            var round = 0
             while (true) {
                 val client = api()
                 if (visible() && client != null) {
                     try {
-                        val shown = client.terminal(id)
-                        _terminal.update { if (it?.id == id) it.copy(terminal = shown, error = null) else it }
+                        // The lines above the screen change slowly and are heavy: asked for now and then, kept between.
+                        val withHistory = round % TERMINAL_HISTORY_EVERY == 0
+                        round++
+                        val fetched = client.terminal(id, if (withHistory) TERMINAL_HISTORY_LINES else 0)
+                        _terminal.update {
+                            if (it?.id != id) it else {
+                                val shown = if (withHistory) fetched else fetched.copy(history = it.terminal?.history.orEmpty())
+                                it.copy(terminal = shown, error = null)
+                            }
+                        }
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: IOException) {
@@ -265,7 +276,7 @@ class MoreModel(
         val id = _terminal.value?.id ?: return
         go { api ->
             val shown = block(api, id)
-            _terminal.update { if (it?.id == id) it.copy(terminal = shown, error = null) else it }
+            _terminal.update { if (it?.id == id) it.copy(terminal = shown.copy(history = it.terminal?.history.orEmpty()), error = null) else it }
         }
     }
 

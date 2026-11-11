@@ -321,7 +321,8 @@ class CccApi(
         post<Unit>("launch-presets", json.encodeToString(LaunchChoice.serializer(), choice))
     }
 
-    suspend fun terminal(id: Int): Terminal = get("conversations/$id/terminal")
+    suspend fun terminal(id: Int, history: Int = 0): Terminal =
+        get("conversations/$id/terminal" + if (history > 0) "?history=$history" else "")
 
     /** Text into the conversation's Claude Code as one paste (and Enter, unless [submit] is false). */
     suspend fun terminalPaste(id: Int, text: String, submit: Boolean): Terminal =

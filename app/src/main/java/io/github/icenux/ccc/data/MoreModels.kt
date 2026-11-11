@@ -195,6 +195,8 @@ data class Terminal(
     val height: Int = 24,
     @SerialName("cursor_x") val cursorX: Int = 0,
     @SerialName("cursor_y") val cursorY: Int = 0,
+    /** What scrolled off above the screen (only when asked for; empty in Claude Code's fullscreen mode). */
+    val history: String = "",
 )
 
 @Serializable
