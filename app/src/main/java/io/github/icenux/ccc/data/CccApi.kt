@@ -390,7 +390,9 @@ class CccApi(
 
     private fun error(code: Int, body: String): ApiException {
         val message = runCatching { json.decodeFromString(ErrorBody.serializer(), body).error }.getOrNull()
-        if (code == 401 && token.isNotEmpty()) onUnauthorized()
+        // Only ccc's own refusal (its JSON error) means the token was revoked; a 401 from a proxy or another
+        // service answering instead of ccc (Tailscale off, a captive portal) must not forget the pairing (#37).
+        if (code == 401 && token.isNotEmpty() && message != null) onUnauthorized()
         return ApiException(code, message ?: "HTTP $code")
     }
 

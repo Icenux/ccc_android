@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -274,6 +275,20 @@ class CccApiTest {
             assertEquals(401, e.code)
             assertEquals("Missing or wrong API token.", e.message)
         }
+    }
+
+    @Test
+    fun `a 401 that is not ccc's own does not sign the phone out`() = runBlocking {
+        answers["status"] = 401 to "<html>Unauthorized</html>"
+        var signedOut = false
+        val client = CccApi("http://127.0.0.1:${server.address.port}", "tok", onUnauthorized = { signedOut = true })
+        try {
+            client.status()
+            fail("no error")
+        } catch (e: ApiException) {
+            assertEquals(401, e.code)
+        }
+        assertFalse(signedOut)
     }
 
     @Test
