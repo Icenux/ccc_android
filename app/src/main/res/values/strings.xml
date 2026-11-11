@@ -364,16 +364,10 @@
     <!-- Redesign: sci-fi HUD, bottom bar and side menu (#13) -->
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_chats">Conversations</string>
-    <string name="nav_tasks">Tasks</string>
     <string name="menu">Menu</string>
     <string name="close">Close</string>
     <string name="menu_section_ccc">ccc</string>
     <string name="menu_section_system">System</string>
-    <string name="menu_this_phone">This phone</string>
-    <string name="menu_paired">Paired</string>
-    <string name="menu_conversations">%1$d conversations</string>
-    <string name="menu_connected">connected</string>
-    <string name="menu_offline">offline</string>
     <string name="menu_live">live</string>
     <string name="menu_stale">not live</string>
     <string name="notifications_on_short">Notify while closed</string>
@@ -423,6 +417,8 @@
     <string name="goal_open_chat">Open chat</string>
     <string name="goal_conversation">Conversation %1$s</string>
     <string name="claude_working">Claude is working</string>
+    <string name="claude_working_for">Claude is working · %1$s</string>
+    <string name="took_for">took %1$s</string>
     <string name="jump_to_newest">Jump to the newest</string>
     <string name="prompt_title">Claude Code asks in the terminal</string>
     <string name="prompt_cancel">Cancel (Esc)</string>

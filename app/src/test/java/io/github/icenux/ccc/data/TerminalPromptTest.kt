@@ -55,8 +55,17 @@ class TerminalPromptTest {
 
     @Test
     fun longBodyIsMarkedAsCut() {
-        val body = (1..12).joinToString("\n") { "line $it of the command" }
+        val body = (1..60).joinToString("\n") { "line $it of the command" }
         val prompt = TerminalPrompts.detect("$body\nProceed?\n❯ 1. Yes\n  2. No\n  Esc to cancel\n")!!
         assertEquals(true, prompt.truncated)
+    }
+
+    @Test
+    fun bodyOfTheDialogIsKept() {
+        val screen = "● Running the tests\n\n──────────────\n Bash command\n\n   pytest -q tests/\n   Run the unit tests\n\n Do you want to proceed?\n ❯ 1. Yes\n   2. No\n\n Esc to cancel\n"
+        val prompt = TerminalPrompts.detect(screen)!!
+        assertEquals("Do you want to proceed?", prompt.question)
+        assertEquals("Bash command\n\npytest -q tests/\nRun the unit tests", prompt.body)
+        assertEquals(false, prompt.truncated)
     }
 }

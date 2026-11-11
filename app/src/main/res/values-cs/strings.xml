@@ -362,16 +362,10 @@
     <!-- Redesign: sci-fi HUD, spodní lišta a postranní menu (#13) -->
     <string name="nav_dashboard">Přehled</string>
     <string name="nav_chats">Konverzace</string>
-    <string name="nav_tasks">Úkoly</string>
     <string name="menu">Menu</string>
     <string name="close">Zavřít</string>
     <string name="menu_section_ccc">ccc</string>
     <string name="menu_section_system">Systém</string>
-    <string name="menu_this_phone">Tento telefon</string>
-    <string name="menu_paired">Spárováno</string>
-    <string name="menu_conversations">konverzací: %1$d</string>
-    <string name="menu_connected">připojeno</string>
-    <string name="menu_offline">offline</string>
     <string name="menu_live">živě</string>
     <string name="menu_stale">neaktuální</string>
     <string name="notifications_on_short">Oznamovat při zavření</string>
@@ -421,6 +415,8 @@
     <string name="goal_open_chat">Otevřít chat</string>
     <string name="goal_conversation">Konverzace %1$s</string>
     <string name="claude_working">Claude pracuje</string>
+    <string name="claude_working_for">Claude pracuje · %1$s</string>
+    <string name="took_for">trvalo %1$s</string>
     <string name="jump_to_newest">Na nejnovější</string>
     <string name="prompt_title">Claude Code se ptá v terminálu</string>
     <string name="prompt_cancel">Zrušit (Esc)</string>
