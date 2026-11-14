@@ -57,7 +57,8 @@ object CccColors {
     val Selection = CyanSoft
     val Accent = Amber
     val Human = Cyan
-    val Claude = Color(0xFF5FE3A8)
+    // The only green: a clear, darker one — the old mint (#5FE3A8) was so light that it blurred with amber.
+    val Claude = Color(0xFF1FAE50)
     val Muted = Dim
     val Running = Cyan
     val Waiting = Amber
