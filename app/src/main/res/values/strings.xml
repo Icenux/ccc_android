@@ -100,6 +100,7 @@
     <string name="queued">queued</string>
     <string name="sending">sending</string>
     <string name="retry">Retry / resume</string>
+    <string name="rename">Rename conversation</string>
     <string name="load_older">Older messages</string>
     <string name="no_messages">No conversation yet.</string>
     <string name="you">You</string>
@@ -482,4 +483,11 @@
     <string name="slash_rewind">Rewind the conversation or code</string>
     <string name="slash_export">Export the conversation</string>
     <string name="slash_todos">The task list</string>
+    <string name="remote_control_help">Also steerable from the Claude app and claude.ai (claude --remote-control).</string>
+    <string name="auto_continue_help">When the 5-hour or weekly limit is used up, ccc carries on by itself after it resets.</string>
+    <string name="worktree">Own git worktree</string>
+    <string name="worktree_help">A separate checkout and branch, to work in parallel. Only with a new session and Bypass permissions.</string>
+    <string name="plugins_none">No Claude Code plugins are installed.</string>
+    <string name="agents_none">This folder has no agents (.claude/agents).</string>
+    <string name="error_unreadable">ccc answered, but the app cannot read the answer. Update the app or ccc.</string>
 </resources>

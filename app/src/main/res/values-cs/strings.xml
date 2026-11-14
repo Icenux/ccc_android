@@ -98,6 +98,7 @@
     <string name="queued">ve frontě</string>
     <string name="sending">odesílá se</string>
     <string name="retry">Zopakovat / pokračovat</string>
+    <string name="rename">Přejmenovat konverzaci</string>
     <string name="load_older">Starší zprávy</string>
     <string name="no_messages">Zatím žádná konverzace.</string>
     <string name="you">Ty</string>
@@ -480,4 +481,11 @@
     <string name="slash_rewind">Vrátit konverzaci nebo kód zpět</string>
     <string name="slash_export">Exportovat konverzaci</string>
     <string name="slash_todos">Seznam úkolů</string>
+    <string name="remote_control_help">Jde řídit i z aplikace Claude a z claude.ai (claude --remote-control).</string>
+    <string name="auto_continue_help">Po vyčerpání 5hodinového nebo týdenního limitu ccc po jeho resetu pokračuje samo.</string>
+    <string name="worktree">Vlastní git worktree</string>
+    <string name="worktree_help">Samostatná pracovní kopie a větev pro souběžnou práci. Jen s novou relací a režimem Bypass permissions.</string>
+    <string name="plugins_none">Nejsou nainstalované žádné pluginy Claude Code.</string>
+    <string name="agents_none">Tato složka nemá žádné agenty (.claude/agents).</string>
+    <string name="error_unreadable">ccc odpovědělo, ale aplikace odpověď nepřečte. Aktualizuj aplikaci nebo ccc.</string>
 </resources>

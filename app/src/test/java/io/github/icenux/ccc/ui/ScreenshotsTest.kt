@@ -265,7 +265,7 @@ open class ScreenshotsTest {
                 NewConversationState(launchOptions, listOf("/home/you/projects/shop-api", "/home/you/projects/docs-site"),
                     LaunchPresets(presets = listOf(LaunchChoice(listOf("perm_plan", "model_opus"), name = "Review"),
                         LaunchChoice(listOf("perm_skip", "model_sonnet"), name = "Quick fix")))),
-                SnackbarHostState(), {}, {}, {}, {},
+                SnackbarHostState(), {}, {}, {}, {}, {},
             )
         }
     }
@@ -410,7 +410,7 @@ open class ScreenshotsTest {
     private companion object {
         val listActions = ConversationsActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, { _, _ -> }, {}, {}, {})
         val conversationActions = ConversationActions(
-            {}, { _, _ -> }, {}, {}, { _, _ -> }, {}, {}, {}, {}, { _, _ -> }, {}, {}, {}, {},
+            {}, { _, _ -> }, {}, {}, { _, _ -> }, {}, {}, {}, {}, {}, { _, _ -> }, {}, {}, {}, {},
         )
         val terminalState = TerminalState(
             5,
@@ -578,7 +578,8 @@ open class ScreenshotsTest {
             total = 5,
             detail = ConversationDetail(
                 1, "shop-api", "/home/you/projects/shop-api", "running", "interactive", pending = 1,
-                flags = "skip permissions · Opus · effort max",
+                flags = "bypass permissions · Opus · effort max", model = "Opus 4.7",
+                context = io.github.icenux.ccc.data.ContextFill(62.0, 124000, 200000),
                 queued = listOf(Queued(9, "Add rate limiting to the admin endpoints too")),
                 permissions = listOf(permission),
             ),
@@ -601,11 +602,15 @@ open class ScreenshotsTest {
                 LaunchGroup("session_extra", "", exclusive = false, required = false,
                     options = listOf(LaunchOption("fork", "As a copy (fork)"))),
                 LaunchGroup("permissions", "Permissions", exclusive = true, required = true, options = listOf(
-                    LaunchOption("perm_skip", "Skip all permission checks"), LaunchOption("perm_accept_edits", "Auto-accept edits"),
-                    LaunchOption("perm_plan", "Plan only"))),
+                    LaunchOption("perm_skip", "Bypass permissions"), LaunchOption("perm_accept_edits", "Accept edits"),
+                    LaunchOption("perm_plan", "Plan"))),
                 LaunchGroup("model", "Model", exclusive = true, required = false, options = listOf(
                     LaunchOption("model_opus", "Opus"), LaunchOption("model_sonnet", "Sonnet"),
                     LaunchOption("model_haiku", "Haiku"), LaunchOption("model_fable", "Fable"))),
+                LaunchGroup("plugins", "Plugins", exclusive = false, required = false,
+                    options = listOf(LaunchOption("plugins_select", "Only selected plugins (predictable behaviour)"))),
+                LaunchGroup("agent", "Agent", exclusive = false, required = false,
+                    options = listOf(LaunchOption("agent_select", "Whole conversation as one agent"))),
             ),
             default = listOf("session_new", "perm_skip"),
         )

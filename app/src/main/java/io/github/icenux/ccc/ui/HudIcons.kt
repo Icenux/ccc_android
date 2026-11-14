@@ -46,6 +46,11 @@ object HudIcons {
         moveTo(11f, 16f); lineTo(21f, 16f)
     }
 
+    /** A lightning bolt: send at once, past the queue. */
+    val Bolt = icon("Bolt") {
+        moveTo(13f, 3f); lineTo(5f, 13.5f); lineTo(11f, 13.5f); lineTo(10f, 21f); lineTo(19f, 9.5f); lineTo(13f, 9.5f); close()
+    }
+
     val More = icon("More", width = 2.6f) { dot(5f, 12f); dot(12f, 12f); dot(19f, 12f) }
 
     val Shield = icon("Shield") {

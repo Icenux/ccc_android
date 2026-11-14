@@ -44,4 +44,33 @@ class ToggleTest {
         assertEquals(listOf("session_new", "mcp_select", "mcp:db"), toggle(mcp, two, "mcp:docs", groups))
         assertEquals(listOf("session_new"), toggle(mcp, two, "mcp_select", groups))
     }
+
+    private val plugins = group("plugins", false, false, "plugins_select")
+    private val agent = group("agent", false, false, "agent_select")
+    private val withMore = groups + plugins + agent
+
+    @Test
+    fun `ticking a plugin turns the mode on, unticking the mode forgets the plugins`() {
+        val one = toggle(plugins, listOf("session_new"), "plugin:a@m", withMore)
+        assertEquals(listOf("session_new", "plugins_select", "plugin:a@m"), one)
+        assertEquals(listOf("session_new"), toggle(plugins, one, "plugins_select", withMore))
+    }
+
+    @Test
+    fun `one agent at most, ticking it again drops it`() {
+        val one = toggle(agent, listOf("session_new"), "agent:reviewer", withMore)
+        assertEquals(listOf("session_new", "agent_select", "agent:reviewer"), one)
+        assertEquals(listOf("session_new", "agent_select", "agent:tester"), toggle(agent, one, "agent:tester", withMore))
+        assertEquals(listOf("session_new", "agent_select"), toggle(agent, one, "agent:reviewer", withMore))
+        assertEquals(listOf("session_new"), toggle(agent, one, "agent_select", withMore))
+    }
+
+    private val permissions = group("permissions", true, true, "perm_skip", "perm_manual")
+    private val launch = io.github.icenux.ccc.data.LaunchOptions(listOf(session, permissions), listOf("session_new", "perm_manual"))
+
+    @Test
+    fun `a saved choice with Bypass permissions falls back to the default mode while it is not allowed`() {
+        assertEquals(listOf("session_new", "perm_manual"), usable(listOf("session_new", "perm_skip"), launch))
+        assertEquals(listOf("session_new", "perm_skip"), usable(listOf("session_new", "perm_skip"), launch.copy(default = listOf("session_new", "perm_skip"))))
+    }
 }

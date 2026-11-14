@@ -74,6 +74,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -113,6 +115,7 @@ class ConversationActions(
     val archive: (Boolean) -> Unit,
     val delete: () -> Unit,
     val setGroup: (String?) -> Unit,
+    val rename: (String) -> Unit,
     val export: () -> Unit,
     val usePreset: (PromptPreset, (String) -> Unit) -> Unit,
     val mention: (String?) -> Unit,
@@ -177,6 +180,14 @@ fun ConversationScreen(
                             GlowDot(color, size = 7.dp, pulse = pulseOf(it.state, approval))
                             Spacer(Modifier.width(7.dp))
                             Text(statusLabel(it.state).uppercase(), style = MaterialTheme.typography.labelMedium, color = color)
+                            it.model?.let { model ->
+                                Text(" · $model", style = MaterialTheme.typography.labelMedium, color = CccColors.Dim, maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                            }
+                            it.context?.let { context ->
+                                Text(" · " + stringResource(R.string.context_short, context.text), style = MaterialTheme.typography.labelMedium,
+                                    color = contextColor(context), maxLines = 1)
+                            }
                         }
                     }
                 }
@@ -195,6 +206,8 @@ fun ConversationScreen(
                                 onClick = { menu = false; actions.tasks() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.agents)) },
                                 onClick = { menu = false; actions.agents() })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.rename)) },
+                                onClick = { menu = false; dialog = "rename" })
                             DropdownMenuItem(text = { Text(stringResource(R.string.group_put)) },
                                 onClick = { menu = false; dialog = "group" })
                             DropdownMenuItem(text = { Text(stringResource(R.string.export)) },
@@ -273,10 +286,12 @@ fun ConversationScreen(
                 }
                 if ((working || queuedCount > 0) && draft.text.isNotBlank() && !state.sending &&
                     (detail?.deliveryMode == "interactive" || detail?.deliveryMode == "remote_control")) {
-                    TextButton(
+                    // Send at once, past the queue: a bolt, its meaning is the description read by accessibility / long press.
+                    val sendNowLabel = stringResource(R.string.send_immediately)
+                    IconButton(
                         onClick = { actions.sendNow(draft.text) { draft = TextFieldValue("") } },
-                        modifier = Modifier.align(Alignment.End),
-                    ) { Text(stringResource(R.string.send_immediately), color = CccColors.Amber) }
+                        modifier = Modifier.align(Alignment.End).semantics { contentDescription = sendNowLabel },
+                    ) { Icon(HudIcons.Bolt, sendNowLabel, tint = CccColors.Amber) }
                 }
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
@@ -374,6 +389,7 @@ fun ConversationScreen(
         )
     }
     when (dialog) {
+        "rename" -> RenameDialog(detail?.name.orEmpty(), { actions.rename(it) }) { dialog = null }
         "group" -> GroupPicker(detail?.group?.title, ownGroups, actions.setGroup) { dialog = null }
         "delete" -> AlertDialog(
             onDismissRequest = { dialog = null },
@@ -435,6 +451,23 @@ private fun SlashMenu(commands: List<io.github.icenux.ccc.data.SlashCommand>, on
             }
         }
     }
+}
+
+/** A new name for the conversation (as F2 in the TUI). */
+@Composable
+private fun RenameDialog(current: String, onRename: (String) -> Unit, onClose: () -> Unit) {
+    var name by rememberSaveable { mutableStateOf(current) }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(stringResource(R.string.rename)) },
+        text = { OutlinedTextField(value = name, onValueChange = { name = it }, singleLine = true, label = { Text(stringResource(R.string.name)) }) },
+        confirmButton = {
+            TextButton(onClick = { onRename(name.trim()); onClose() }, enabled = name.isNotBlank() && name.trim() != current) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 /** Put the conversation into one of your own groups, a new one, or none. */
