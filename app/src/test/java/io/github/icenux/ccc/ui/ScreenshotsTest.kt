@@ -135,14 +135,14 @@ open class ScreenshotsTest {
 
     @Test
     fun conversation() = shot("conversation", "Rate limiting added") {
-        ConversationScreen(conversation, home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions)
+        ConversationScreen(conversation, home.promptPresets, home.ownGroups, false, SnackbarHostState(), conversationActions)
     }
 
     @Test
     fun mention() = shot("mention", "src/api/limits.py") {
         ConversationScreen(
             conversation.copy(mentions = listOf("src/api/limits.py", "src/api/orders.py", "tests/api/test_limits.py")),
-            home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions,
+            home.promptPresets, home.ownGroups, false, SnackbarHostState(), conversationActions,
         )
     }
 

@@ -377,6 +377,7 @@
     <string name="menu_stale">not live</string>
     <string name="notifications_on_short">Notify while closed</string>
     <string name="menu_effects">Glow &amp; animations</string>
+    <string name="enter_sends">Enter sends the message in chat</string>
     <string name="menu_swipe_close">Swipe left to close</string>
     <string name="conversations_count">%1$d conversations</string>
     <string name="sessions_count">%1$d sessions</string>

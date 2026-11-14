@@ -1,5 +1,13 @@
 package io.github.icenux.ccc.ui
 
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.State
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.graphicsLayer
@@ -134,6 +142,7 @@ fun ConversationScreen(
     state: ConversationState,
     presets: List<PromptPreset>,
     ownGroups: List<String>,
+    enterSends: Boolean,
     snackbar: SnackbarHostState,
     actions: ConversationActions,
 ) {
@@ -294,15 +303,25 @@ fun ConversationScreen(
                     ) { Icon(HudIcons.Bolt, sendNowLabel, tint = CccColors.Amber) }
                 }
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val sendable = draft.text.isNotBlank() && !state.sending
                     OutlinedTextField(
                         value = draft,
-                        keyboardOptions = SentenceKeyboard,
+                        // With "Enter sends": the keyboard's Enter key becomes Send; Shift+Enter (hardware) still starts a new line.
+                        keyboardOptions = if (enterSends) SentenceKeyboard.copy(imeAction = ImeAction.Send) else SentenceKeyboard,
+                        keyboardActions = KeyboardActions(onSend = {
+                            if (sendable) actions.send(draft.text) { draft = TextFieldValue("") }
+                        }),
                         onValueChange = {
                             draft = it
                             actions.mention(mentionAt(it.text.substring(0, it.selection.end))?.second)
                         },
                         placeholder = { Text(stringResource(R.string.message_hint), color = CccColors.Faint) },
-                        modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 160.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp, max = 160.dp).onPreviewKeyEvent { event ->
+                            if (enterSends && event.key == Key.Enter && !event.isShiftPressed) {
+                                if (event.type == KeyEventType.KeyDown && sendable) actions.send(draft.text) { draft = TextFieldValue("") }
+                                true
+                            } else false
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedBorderColor = CccColors.LineBright,
                             focusedBorderColor = CccColors.Cyan,
