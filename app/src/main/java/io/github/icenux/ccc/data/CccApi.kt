@@ -112,6 +112,10 @@ class CccApi(
     suspend fun archive(id: Int, archived: Boolean): ConversationDetail =
         post("conversations/$id/archive", """{"archived":$archived}""")
 
+    /** The conversation's new name in ccc. */
+    suspend fun rename(id: Int, name: String): ConversationDetail =
+        post("conversations/$id/rename", json.encodeToString(NameBody.serializer(), NameBody(name)))
+
     /** Out of ccc with its tasks and history (not while it runs); Claude Code's transcript stays. */
     suspend fun delete(id: Int) {
         call<Unit>(request("conversations/$id").delete().build())
@@ -143,6 +147,10 @@ class CccApi(
     suspend fun launchPresets(): LaunchPresets = get("launch-presets")
 
     suspend fun mcpServers(path: String): List<String> = get("mcp-servers", mapOf("path" to path))
+
+    suspend fun plugins(): Plugins = get("plugins")
+
+    suspend fun agentsOf(path: String): List<AgentBrief> = get("agents", mapOf("path" to path))
 
     suspend fun sessions(path: String): List<Session> = get("sessions", mapOf("path" to path))
 

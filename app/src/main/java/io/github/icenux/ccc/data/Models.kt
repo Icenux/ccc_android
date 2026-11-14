@@ -75,6 +75,8 @@ data class Conversation(
     @SerialName("live_busy") val liveBusy: Boolean = false,
     /** How full its context window is, from Claude Code's status line (older ccc / not reported: null). */
     val context: ContextFill? = null,
+    /** The model Claude Code works with, as its status line names it ("Opus 4.7"; not reported: null). */
+    val model: String? = null,
 ) {
     val state: ConversationStatus get() = effectiveState(status, liveBusy)
 }
@@ -183,6 +185,8 @@ data class ConversationDetail(
     val permissions: List<Permission> = emptyList(),
     @SerialName("live_busy") val liveBusy: Boolean = false,
     val context: ContextFill? = null,
+    /** The model Claude Code works with, as its status line names it ("Opus 4.7"; not reported: null). */
+    val model: String? = null,
 ) {
     val state: ConversationStatus get() = effectiveState(status, liveBusy)
 }
@@ -239,7 +243,17 @@ data class NewConversation(
     @SerialName("remote_control") val remoteControl: Boolean = false,
     @SerialName("auto_continue") val autoContinue: Boolean = true,
     val prompt: String = "",
+    /** An own git worktree for the conversation (a new session or one from a pull request). */
+    val worktree: Boolean = false,
 )
+
+/** The installed Claude Code plugins and the ones the user has switched on. */
+@Serializable
+data class Plugins(val installed: List<String> = emptyList(), val enabled: List<String> = emptyList())
+
+/** A Claude Code subagent of a folder: a whole conversation can run as one. */
+@Serializable
+data class AgentBrief(val name: String, val description: String = "", val problem: String = "")
 
 @Serializable
 data class Groups(val mode: String, val own: List<String> = emptyList())

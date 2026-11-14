@@ -122,6 +122,10 @@ private const val SESSION_NEW = "session_new"
 private const val FORK = "fork"
 private const val MCP_SELECT = "mcp_select"
 private const val MCP_PREFIX = "mcp:"
+private const val PLUGINS_SELECT = "plugins_select"
+private const val PLUGIN_PREFIX = "plugin:"
+private const val AGENT_SELECT = "agent_select"
+private const val AGENT_PREFIX = "agent:"
 
 @Composable
 private fun TopBar(title: String, onBack: (() -> Unit)?) {
@@ -168,6 +172,7 @@ fun NewConversationSheet(
     onBack: () -> Unit,
     onLoadSessions: (String) -> Unit,
     onLoadMcpServers: (String) -> Unit,
+    onLoadAgents: (String) -> Unit,
     onCreate: (NewConversation) -> Unit,
 ) {
     var sessionId by rememberSaveable { mutableStateOf("") }
@@ -177,17 +182,20 @@ fun NewConversationSheet(
     var prompt by rememberSaveable { mutableStateOf("") }
     var remote by rememberSaveable { mutableStateOf(false) }
     var autoContinue by rememberSaveable { mutableStateOf(true) }
+    var worktree by rememberSaveable { mutableStateOf(false) }
     var selection by rememberSaveable { mutableStateOf(emptyList<String>()) }
     val options = state.options
     // As ccc's window: the last choice first, else the defaults.
     LaunchedEffect(options, state.presets) {
         if (options != null && selection.isEmpty()) {
             val last = state.presets?.last
-            selection = last?.options ?: options.default
+            selection = (last?.options?.let { usable(it, options) }) ?: options.default
             last?.let { remote = it.remoteControl; autoContinue = it.autoContinue }
         }
     }
     val resume = RESUME in selection
+    // As ccc: an own worktree only with a new session (or from a pull request) and with all permission checks bypassed.
+    val worktreeFits = (SESSION_NEW in selection || FROM_PR in selection) && "perm_skip" in selection
     LaunchedEffect(path, resume) {
         if (resume) {
             delay(FOLDER_DELAY_MS)  // the path is typed letter by letter: ask once it rests
@@ -199,6 +207,13 @@ fun NewConversationSheet(
         if (mcpOn) {
             delay(FOLDER_DELAY_MS)
             onLoadMcpServers(path.trim())
+        }
+    }
+    val agentOn = AGENT_SELECT in selection
+    LaunchedEffect(path, agentOn) {
+        if (agentOn) {
+            delay(FOLDER_DELAY_MS)
+            onLoadAgents(path.trim())
         }
     }
     // The sheet rises on a spring over the screen below it; its scrim fades in; closing slides it away first.
@@ -283,7 +298,7 @@ fun NewConversationSheet(
                         FilterChip(
                             selected = false,
                             onClick = {
-                                selection = preset.options
+                                selection = options?.let { o -> usable(preset.options, o) } ?: preset.options
                                 remote = preset.remoteControl
                                 autoContinue = preset.autoContinue
                             },
@@ -308,6 +323,12 @@ fun NewConversationSheet(
                 if (group.key == "mcp" && mcpOn) {
                     McpServers(state, path.trim(), selection) { selection = toggle(group, selection, MCP_PREFIX + it, options.groups) }
                 }
+                if (group.key == "plugins" && PLUGINS_SELECT in selection) {
+                    PluginChoice(state, selection) { selection = toggle(group, selection, PLUGIN_PREFIX + it, options.groups) }
+                }
+                if (group.key == "agent" && agentOn) {
+                    AgentChoice(state, path.trim(), selection) { selection = toggle(group, selection, AGENT_PREFIX + it, options.groups) }
+                }
             }
             if (resume) {
                 SessionList(state, path.trim(), sessionId) { sessionId = it }
@@ -321,8 +342,10 @@ fun NewConversationSheet(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            SwitchRow(stringResource(R.string.remote_control), remote) { remote = it }
-            SwitchRow(stringResource(R.string.auto_continue), autoContinue) { autoContinue = it }
+            SwitchRow(stringResource(R.string.remote_control), stringResource(R.string.remote_control_help), remote) { remote = it }
+            SwitchRow(stringResource(R.string.auto_continue), stringResource(R.string.auto_continue_help), autoContinue) { autoContinue = it }
+            SwitchRow(stringResource(R.string.worktree), stringResource(R.string.worktree_help), worktree && worktreeFits,
+                enabled = worktreeFits) { worktree = it }
             Row { Caption(stringResource(R.string.first_message), Modifier.weight(1f)); Caption(stringResource(R.string.new_optional)) }
             OutlinedTextField(
                 value = prompt,
@@ -331,10 +354,14 @@ fun NewConversationSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+                if (state.error.isNotEmpty()) {
+                    Text(state.error, Modifier.padding(horizontal = 20.dp, vertical = 4.dp), color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall)
+                }
                 CccButton(
                     onClick = {
                         onCreate(NewConversation(path.trim(), name.trim(), selection, pr.trim(),
-                            if (resume) sessionId else "", remote, autoContinue, prompt))
+                            if (resume) sessionId else "", remote, autoContinue, prompt, worktree && worktreeFits))
                     },
                     enabled = path.isNotBlank() && !state.creating && (!resume || sessionId.isNotEmpty()),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(56.dp),
@@ -374,6 +401,17 @@ private fun OptionGroup(group: LaunchGroup, selection: List<String>, onToggle: (
     }
 }
 
+/**
+ * A saved choice (the last one, a preset) as this app may start it: "Bypass permissions" is not in the server's defaults
+ * until it is allowed on the computer (ccc api skip-permissions on), and a choice with it would only be refused, so the
+ * default permission mode stands in.
+ */
+internal fun usable(picked: List<String>, options: io.github.icenux.ccc.data.LaunchOptions): List<String> {
+    if ("perm_skip" in options.default || "perm_skip" !in picked) return picked
+    val permissions = options.groups.firstOrNull { it.key == "permissions" }?.options?.map { it.key }.orEmpty().toSet()
+    return picked.filterNot { it == "perm_skip" } + options.default.filter { it in permissions }
+}
+
 /** How long the typed folder must rest before the app asks the server about it. */
 private const val FOLDER_DELAY_MS = 700L
 
@@ -395,6 +433,40 @@ private fun McpServers(state: NewConversationState, path: String, selection: Lis
     }
 }
 
+/** The installed Claude Code plugins: tick those the conversation may use. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PluginChoice(state: NewConversationState, selection: List<String>, onToggle: (String) -> Unit) {
+    val chosen = selection.filter { it.startsWith(PLUGIN_PREFIX) }.map { it.removePrefix(PLUGIN_PREFIX) }
+    val ids = state.plugins.installed.union(chosen).sorted()
+    if (ids.isEmpty()) {
+        Text(stringResource(R.string.plugins_none), color = CccColors.Muted, style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ids.forEach { id ->
+            FilterChip(selected = id in chosen, onClick = { onToggle(id) }, label = { Text(id.substringBefore('@')) }, colors = chipColors())
+        }
+    }
+}
+
+/** The subagents of the folder: the whole conversation runs as the one ticked. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AgentChoice(state: NewConversationState, path: String, selection: List<String>, onToggle: (String) -> Unit) {
+    val chosen = selection.firstOrNull { it.startsWith(AGENT_PREFIX) }?.removePrefix(AGENT_PREFIX)
+    val agents = if (state.agentsFor == path) state.agents.filter { it.problem.isEmpty() } else emptyList()
+    if (agents.isEmpty() && chosen == null) {
+        Text(stringResource(R.string.agents_none), color = CccColors.Muted, style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        (agents.map { it.name } + listOfNotNull(chosen)).distinct().sorted().forEach { name ->
+            FilterChip(selected = name == chosen, onClick = { onToggle(name) }, label = { Text(name) }, colors = chipColors())
+        }
+    }
+}
+
 /**
  * As launch_options.toggle in ccc: one per exclusive group, required groups never empty.
  * A server key ("mcp:<name>") is not in the catalogue: ticking one turns "only selected
@@ -408,7 +480,21 @@ internal fun toggle(group: LaunchGroup, selection: List<String>, key: String, gr
         if (MCP_SELECT !in result) result.add(MCP_SELECT)
         return ordered(result, groups)
     }
+    if (key.startsWith(PLUGIN_PREFIX)) {
+        if (key in result) result.remove(key) else result.add(key)
+        if (PLUGINS_SELECT !in result) result.add(PLUGINS_SELECT)
+        return ordered(result, groups)
+    }
+    if (key.startsWith(AGENT_PREFIX)) {
+        // One agent at most; ticking it turns the mode on, ticking it again turns the agent off.
+        val was = key in result
+        result.removeAll { it.startsWith(AGENT_PREFIX) }
+        if (!was) { result.add(key); if (AGENT_SELECT !in result) result.add(AGENT_SELECT) }
+        return ordered(result, groups)
+    }
     if (key == MCP_SELECT && key in result) result.removeAll { it.startsWith(MCP_PREFIX) }
+    if (key == PLUGINS_SELECT && key in result) result.removeAll { it.startsWith(PLUGIN_PREFIX) }
+    if (key == AGENT_SELECT && key in result) result.removeAll { it.startsWith(AGENT_PREFIX) }
     if (key in result) {
         if (!group.required) result.remove(key)
     } else {
@@ -419,9 +505,10 @@ internal fun toggle(group: LaunchGroup, selection: List<String>, key: String, gr
     return ordered(result, groups)
 }
 
-/** In catalogue order, then the MCP servers. */
+/** In catalogue order, then the MCP servers, the plugins and the agent. */
 private fun ordered(result: List<String>, groups: List<LaunchGroup>): List<String> =
-    groups.flatMap { g -> g.options.map { it.key } }.filter { it in result } + result.filter { it.startsWith(MCP_PREFIX) }.sorted()
+    groups.flatMap { g -> g.options.map { it.key } }.filter { it in result } +
+        listOf(MCP_PREFIX, PLUGIN_PREFIX, AGENT_PREFIX).flatMap { prefix -> result.filter { it.startsWith(prefix) }.sorted() }
 
 /** The folder's Claude Code sessions, newest first, to resume one. */
 @Composable
@@ -508,10 +595,13 @@ private fun chipColors() = FilterChipDefaults.filterChipColors(
 )
 
 @Composable
-private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(label: String, help: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Column(Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(label, color = if (enabled) CccColors.Text else CccColors.Faint)
+            Text(help, style = MaterialTheme.typography.bodySmall, color = CccColors.Muted)
+        }
+        Switch(checked = checked, onCheckedChange = onChange, enabled = enabled)
     }
 }
 

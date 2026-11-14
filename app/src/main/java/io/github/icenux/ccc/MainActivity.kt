@@ -301,6 +301,7 @@ private fun App(model: AppViewModel) {
                     archive = { archived -> model.archive(screen.id, archived) },
                     delete = { model.delete(screen.id) },
                     setGroup = { name -> model.setGroup(screen.id, name) },
+                    rename = { name -> model.rename(screen.id, name) },
                     export = { model.export(screen.id) },
                     usePreset = model::usePreset,
                     mention = model::mention,
@@ -511,6 +512,7 @@ private fun App(model: AppViewModel) {
                 onBack = model::back,
                 onLoadSessions = model::loadSessions,
                 onLoadMcpServers = model::loadMcpServers,
+                onLoadAgents = model::loadAgents,
                 onCreate = model::create,
             )
         }

@@ -149,10 +149,17 @@ data class NewConversationState(
     /** Names of the MCP servers configured in [mcpFor] (to pick from). */
     val mcpServers: List<String> = emptyList(),
     val mcpFor: String = "",
+    /** The installed Claude Code plugins (to pick from). */
+    val plugins: io.github.icenux.ccc.data.Plugins = io.github.icenux.ccc.data.Plugins(),
+    /** The subagents of [agentsFor] (one can run the whole conversation). */
+    val agents: List<io.github.icenux.ccc.data.AgentBrief> = emptyList(),
+    val agentsFor: String = "",
     /** The server's refusal ("allow it on the computer: ccc api roots --add …") for [deniedFor], else empty. */
     val folderDenied: String = "",
     val deniedFor: String = "",
     val creating: Boolean = false,
+    /** Why the server refused to start it (stays in the sheet, where a snackbar is easily missed); empty: nothing wrong. */
+    val error: String = "",
 )
 
 /** The task queue of conversation [id]. */
@@ -865,7 +872,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val options = client.launchOptions()
                 val projects = client.projects()
                 val presets = client.launchPresets()
-                _newConversation.update { it.copy(options = options, projects = projects, presets = presets) }
+                val plugins = runCatching { client.plugins() }.getOrDefault(io.github.icenux.ccc.data.Plugins())
+                _newConversation.update { it.copy(options = options, projects = projects, presets = presets, plugins = plugins) }
             }
         }
     }
@@ -873,15 +881,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun create(request: NewConversation) {
         val client = api ?: return
         if (_newConversation.value.creating) return
-        _newConversation.update { it.copy(creating = true) }
+        _newConversation.update { it.copy(creating = true, error = "") }
         viewModelScope.launch {
-            guard {
+            val ok = guard {
                 val created = client.create(request)
                 refresh()
                 _screens.update { stack -> stack.dropLast(1) }
                 open(Screen.Conversation(created.id))
             }
-            _newConversation.update { it.copy(creating = false) }
+            _newConversation.update { it.copy(creating = false, error = if (ok) "" else _message.value.orEmpty()) }
         }
     }
 
@@ -965,6 +973,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _screens.update { stack -> stack.filterNot { s -> s is Screen.Conversation && s.id == id } }
         if (_conversation.value?.id == id) _conversation.value = null
         refresh()
+    }
+
+    fun rename(id: Int, name: String) = action {
+        it.rename(id, name)
+        refresh()
+        if (_conversation.value?.id == id) reloadConversation(id)
     }
 
     fun setGroup(id: Int, name: String?) = action {
@@ -1087,6 +1101,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun loadAgents(path: String) {
+        val client = api ?: return
+        if (path.isBlank() || _newConversation.value.agentsFor == path) return
+        viewModelScope.launch {
+            val agents = folderCall(path) { client.agentsOf(path) }
+            _newConversation.update { it.copy(agents = agents, agentsFor = path) }
+        }
+    }
+
     /** A folder-specific call; a 403 means the folder is not allowed (not the role): remember the server's words. */
     private suspend fun <T> folderCall(path: String, block: suspend () -> List<T>): List<T> = try {
         block().also { _newConversation.update { it.copy(folderDenied = "", deniedFor = "") } }
@@ -1116,6 +1139,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         throw e
     } catch (e: IOException) {
         _message.value = describe(e)
+        false
+    } catch (e: kotlinx.serialization.SerializationException) {
+        // The server answered, but with something this app cannot read (an older or newer ccc): say so, do not crash.
+        _message.value = text(R.string.error_unreadable)
         false
     }
 
