@@ -194,11 +194,14 @@ fun NewConversationSheet(
         }
     }
     val resume = RESUME in selection
+    val folderDenied = state.folderDenied.isNotEmpty() && state.deniedFor == path.trim()
     // As ccc: an own worktree only with a new session (or from a pull request) and with all permission checks bypassed.
     val worktreeFits = (SESSION_NEW in selection || FROM_PR in selection) && "perm_skip" in selection
-    LaunchedEffect(path, resume) {
-        if (resume) {
-            delay(FOLDER_DELAY_MS)  // the path is typed letter by letter: ask once it rests
+    // The path is typed letter by letter: ask once it rests. Asking about the folder (its sessions) also tells at once
+    // whether the server allows it (ccc api roots), instead of a refusal only after Start.
+    LaunchedEffect(path) {
+        if (path.isNotBlank()) {
+            delay(FOLDER_DELAY_MS)
             onLoadSessions(path.trim())
         }
     }
@@ -315,7 +318,7 @@ fun NewConversationSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (state.folderDenied.isNotEmpty() && state.deniedFor == path.trim()) {
+            if (folderDenied) {
                 Text(state.folderDenied, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             options?.groups?.forEach { group ->
@@ -363,7 +366,7 @@ fun NewConversationSheet(
                         onCreate(NewConversation(path.trim(), name.trim(), selection, pr.trim(),
                             if (resume) sessionId else "", remote, autoContinue, prompt, worktree && worktreeFits))
                     },
-                    enabled = path.isNotBlank() && !state.creating && (!resume || sessionId.isNotEmpty()),
+                    enabled = path.isNotBlank() && !state.creating && !folderDenied && (!resume || sessionId.isNotEmpty()),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(56.dp),
                 ) {
                     if (state.creating) CircularProgressIndicator(Modifier.size(24.dp), color = CccColors.Background, strokeWidth = 2.dp)
