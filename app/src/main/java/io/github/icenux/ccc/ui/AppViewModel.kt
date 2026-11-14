@@ -392,6 +392,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _effects.value = value
     }
 
+    private val _enterSends = MutableStateFlow(settings.enterSends)
+    /** Whether Enter sends the message in the chat (a setting on the General tab). */
+    val enterSends: StateFlow<Boolean> = _enterSends.asStateFlow()
+
+    fun setEnterSends(value: Boolean) {
+        settings.enterSends = value
+        _enterSends.value = value
+    }
+
     /** Agents, routines, live sessions, analytics, ccc's settings. */
     val more = MoreModel(viewModelScope, { block -> guard { api?.let { block(it) } } }, { _message.value = it })
 

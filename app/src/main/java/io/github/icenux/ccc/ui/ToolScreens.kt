@@ -360,6 +360,7 @@ class SettingsActions(
     val alertKinds: (Set<String>) -> Unit = {},
     val persistent: (Boolean) -> Unit = {},
     val effects: (Boolean) -> Unit = {},
+    val enterSends: (Boolean) -> Unit = {},
 )
 
 /** ccc's own settings (Ctrl+P in ccc) — the same choices; secrets only as set / not set. */
@@ -376,6 +377,7 @@ fun CccSettingsScreen(
     alertKinds: Set<String> = AlertKind.DEFAULT,
     persistent: Boolean = false,
     effects: Boolean = true,
+    enterSends: Boolean = false,
     connection: @Composable () -> Unit = {},
 ) {
     Scaffold(
@@ -433,6 +435,7 @@ fun CccSettingsScreen(
                     LanguageChoice(language, onLanguage)
                     SettingsSwitch(stringResource(R.string.notifications_on_short), notifications, actions.notifications)
                     SettingsSwitch(stringResource(R.string.menu_effects), effects, actions.effects)
+                    SettingsSwitch(stringResource(R.string.enter_sends), enterSends, actions.enterSends)
                     Picker(stringResource(R.string.groups_in_list), groups, state.groupsChoices.map { it.value to it.label }) { groups = it }
                 }
             }

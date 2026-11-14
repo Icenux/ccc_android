@@ -38,6 +38,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(EFFECTS, true)
         set(value) = prefs.edit().putBoolean(EFFECTS, value).apply()
 
+    /** Whether Enter sends the message in the chat (otherwise it starts a new line and only the button sends). */
+    var enterSends: Boolean
+        get() = prefs.getBoolean(ENTER_SENDS, false)
+        set(value) = prefs.edit().putBoolean(ENTER_SENDS, value).apply()
+
     /** The app's own language: "" = follow the phone, otherwise a language tag ("en", "cs"); not the computer's or ccc's. */
     var language: String
         get() = prefs.getString(LANGUAGE, "").orEmpty()
@@ -61,7 +66,8 @@ class Settings(context: Context) {
         // The language is the app's own choice, not part of the connection: it stays.
         val language = language
         val effects = effects
-        prefs.edit().clear().putString(LANGUAGE, language).putBoolean(EFFECTS, effects).apply()
+        val enterSends = enterSends
+        prefs.edit().clear().putString(LANGUAGE, language).putBoolean(EFFECTS, effects).putBoolean(ENTER_SENDS, enterSends).apply()
     }
 
     private companion object {
@@ -75,6 +81,7 @@ class Settings(context: Context) {
         const val LIST_DETAILS = "list_details"
         const val LANGUAGE = "language"
         const val EFFECTS = "effects"
+        const val ENTER_SENDS = "enter_sends"
     }
 }
 

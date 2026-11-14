@@ -135,14 +135,14 @@ open class ScreenshotsTest {
 
     @Test
     fun conversation() = shot("conversation", "Rate limiting added") {
-        ConversationScreen(conversation, home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions)
+        ConversationScreen(conversation, home.promptPresets, home.ownGroups, false, SnackbarHostState(), conversationActions)
     }
 
     @Test
     fun mention() = shot("mention", "src/api/limits.py") {
         ConversationScreen(
             conversation.copy(mentions = listOf("src/api/limits.py", "src/api/orders.py", "tests/api/test_limits.py")),
-            home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions,
+            home.promptPresets, home.ownGroups, false, SnackbarHostState(), conversationActions,
         )
     }
 
@@ -155,7 +155,7 @@ open class ScreenshotsTest {
                 Message(6, "human", ran, "2026-10-21T18:14:00+00:00"),
                 Message(7, "human", "<local-command-stdout>Set model to opus</local-command-stdout>", "2026-10-21T18:14:00+00:00"),
             )),
-            home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions,
+            home.promptPresets, home.ownGroups, false, SnackbarHostState(), conversationActions,
         )
     }
 
@@ -163,7 +163,7 @@ open class ScreenshotsTest {
     fun slashMenu() = shot("slash_menu", "Rate limiting added", act = {
         compose.onNode(androidx.compose.ui.test.hasSetTextAction()).performTextInput("/co")
     }) {
-        ConversationScreen(conversation, home.promptPresets, home.ownGroups, SnackbarHostState(), conversationActions)
+        ConversationScreen(conversation, home.promptPresets, home.ownGroups, false, SnackbarHostState(), conversationActions)
     }
 
     @Test

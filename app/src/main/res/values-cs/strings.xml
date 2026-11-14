@@ -375,6 +375,7 @@
     <string name="menu_stale">neaktuální</string>
     <string name="notifications_on_short">Oznamovat při zavření</string>
     <string name="menu_effects">Záře a animace</string>
+    <string name="enter_sends">Enter odesílá zprávu v chatu</string>
     <string name="menu_swipe_close">Zavřeš tažením doleva</string>
     <string name="conversations_count">konverzací: %1$d</string>
     <string name="sessions_count">relací: %1$d</string>

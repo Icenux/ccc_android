@@ -220,6 +220,7 @@ private fun App(model: AppViewModel) {
     BackHandler(enabled = screens.size > 1) { model.back() }
 
     val effects by model.effects.collectAsStateWithLifecycle()
+    val enterSends by model.enterSends.collectAsStateWithLifecycle()
     val top = screens.last()
     // The new-conversation sheet slides over the screen below it.
     val base = if (top == Screen.NewConversation && screens.size > 1) screens[screens.size - 2] else top
@@ -290,6 +291,7 @@ private fun App(model: AppViewModel) {
                 state = it,
                 presets = home.promptPresets,
                 ownGroups = home.ownGroups,
+                enterSends = enterSends,
                 snackbar = snackbar,
                 actions = ConversationActions(
                     back = model::back,
@@ -391,6 +393,7 @@ private fun App(model: AppViewModel) {
             alertKinds = alertKinds,
             persistent = persistent,
             effects = effects,
+            enterSends = enterSends,
             connection = {
                 SetupContent(
                     Modifier.fillMaxWidth(),
@@ -427,6 +430,7 @@ private fun App(model: AppViewModel) {
                 alertKinds = model::setAlertKinds,
                 persistent = model::setPersistent,
                 effects = model::setEffects,
+                enterSends = model::setEnterSends,
             ),
         )
         is Screen.Terminal -> terminal?.takeIf { it.id == screen.id }?.let {
