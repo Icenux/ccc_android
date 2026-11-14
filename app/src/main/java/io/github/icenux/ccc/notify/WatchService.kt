@@ -10,6 +10,8 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -43,6 +45,7 @@ import kotlin.math.roundToInt
 class WatchService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val checking = Mutex()
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -55,6 +58,9 @@ class WatchService : Service() {
         } else {
             startForeground(WATCH_ID, watching)
         }
+        // Without it the phone sleeps with the screen off and the connection (and every check) stalls until it wakes (#55).
+        wakeLock = getSystemService(PowerManager::class.java)
+            ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "ccc:watch")?.apply { setReferenceCounted(false); acquire() }
         scope.launch { watch() }
     }
 
@@ -68,6 +74,7 @@ class WatchService : Service() {
 
     override fun onDestroy() {
         scope.cancel()
+        wakeLock?.let { if (it.isHeld) it.release() }
         super.onDestroy()
     }
 
@@ -78,6 +85,19 @@ class WatchService : Service() {
             return
         }
         val api = CccApi(settings.server, settings.token)
+        // The stream only tells about changes; an exhausted usage window or a lost event is caught by looking now and then.
+        scope.launch {
+            while (true) {
+                delay(RECHECK_MS)
+                try {
+                    check(api, settings)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "periodic check failed", e)
+                }
+            }
+        }
         var wait = 2_000L
         while (true) {
             try {
@@ -87,15 +107,17 @@ class WatchService : Service() {
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 if (e is ApiException && e.code == 401) {
                     settings.notifications = false
                     stopSelf()
                     return
                 }
+                // Anything else (a dropped connection, an answer that can't be read) is not the end of watching.
+                Log.w(TAG, "watching interrupted, reconnecting", e)
             }
             delay(wait)
-            wait = (wait * 2).coerceAtMost(60_000L)
+            wait = (wait * 2).coerceAtMost(30_000L)
         }
     }
 
@@ -150,6 +172,8 @@ class WatchService : Service() {
         const val CHANNEL_APPROVALS = "approvals"
         const val CHANNEL_NEEDS_YOU = "needs_you"
         const val SETTLE_MS = 4_000L
+        const val RECHECK_MS = 60_000L
+        private const val TAG = "WatchService"
         const val WATCH_ID = 1
         const val ALERT_ID = 2
         const val EXTRA_CONVERSATION = "conversation"
