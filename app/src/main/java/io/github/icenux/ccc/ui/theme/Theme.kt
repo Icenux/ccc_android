@@ -31,7 +31,7 @@ import io.github.icenux.ccc.R
 
 /**
  * ccc's sci-fi / HUD palette (design #13): near-black navy, cyan as the primary colour, amber for what waits
- * for you, red for errors, blue for "waiting to retry", green only for Claude's messages.
+ * for you, red for errors, blue for "waiting to retry", green only for Claude's messages and for "finished, a reply waits for you".
  *
  * The old names (Background, Title, Muted …) stay, so every screen follows the new look; the new tokens
  * (Cyan, Dim, Faint, LineBright …) are for the new components.
@@ -58,7 +58,9 @@ object CccColors {
     val Accent = Amber
     val Human = Cyan
     // The only green: a clear, darker one — the old mint (#5FE3A8) was so light that it blurred with amber.
-    val Claude = Color(0xFF1FAE50)
+    // Claude's messages, and "finished, a new reply waits for you" (the dot in the conversation list).
+    val Done = Color(0xFF1FAE50)
+    val Claude = Done
     val Muted = Dim
     val Running = Cyan
     val Waiting = Amber

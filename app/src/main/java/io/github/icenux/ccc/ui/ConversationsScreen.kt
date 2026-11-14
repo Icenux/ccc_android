@@ -675,7 +675,7 @@ internal fun ConversationCard(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     conversation.git?.branch?.let { CccChip(it, color = CccColors.Dim, modifier = Modifier.weight(1f, fill = false)) }
-                    if (conversation.unseen) GlowDot(CccColors.Cyan, size = 7.dp)
+                    if (conversation.unseen) GlowDot(CccColors.Done, size = 7.dp) // finished, a new reply waits: green
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     GlowDot(color, size = 7.dp, pulse = pulseOf(state, approval))
