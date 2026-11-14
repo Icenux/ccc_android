@@ -271,6 +271,18 @@ open class ScreenshotsTest {
     }
 
     @Test
+    fun newConversationFolderDenied() = shot("new_conversation_folder_denied", "shop-api") {
+        Box {
+            ConversationsScreen(home.copy(tab = HomeTab.TASKS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
+            NewConversationSheet(
+                NewConversationState(launchOptions, listOf("/home/you/projects/shop-api"),
+                    folderDenied = "The API may not use this folder. Allow it on the computer: ccc api roots --add /home/you/projects/new-app"),
+                SnackbarHostState(), {}, {}, {}, {}, {},
+            )
+        }
+    }
+
+    @Test
     fun taskQueue() = shot("task_queue", "admin endpoints") {
         shell(HomeTab.TASKS) {
             ConversationsScreen(home.copy(tab = HomeTab.TASKS), ListDetail.DEFAULT, null, SnackbarHostState(), listActions)
