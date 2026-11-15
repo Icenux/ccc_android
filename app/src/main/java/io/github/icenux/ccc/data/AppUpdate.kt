@@ -49,17 +49,14 @@ private data class AssetJson(val name: String, @SerialName("browser_download_url
 private val json = Json { ignoreUnknownKeys = true }
 
 /**
- * GitHub's answer for releases/latest as an [AppRelease]; null for a release without the app ([asset], ccc.apk)
- * or a tag that isn't a version. The same rules as ccc's own (src/ccc/releases.py): both are tested against
+ * GitHub's answer for releases/latest as an [AppRelease]; null for a release without the app ([asset]) or a tag
+ * that isn't a version. The same rules as ccc's own (src/ccc/releases.py): both are tested against
  * tests/fixtures/release-rules.json.
  */
-fun parseRelease(text: String, asset: String = APK_NAME): AppRelease? = parseRelease(text) { listOf(asset) }
+fun parseRelease(text: String, asset: String): AppRelease? = parseRelease(text) { listOf(asset) }
 
-/**
- * The app's release: the file is named after the version ([apkName], "ccc_1.2.0.apk"); releases up to 0.2.4
- * attach only the old [APK_NAME] ("ccc.apk"), and newer ones attach both while older apps still look for that.
- */
-fun parseAppRelease(text: String): AppRelease? = parseRelease(text) { listOf(apkName(it), APK_NAME) }
+/** The app's release: the file is named after the version ([apkName], "ccc_1.2.0.apk"). */
+fun parseAppRelease(text: String): AppRelease? = parseRelease(text) { listOf(apkName(it)) }
 
 private fun parseRelease(text: String, names: (version: String) -> List<String>): AppRelease? {
     val release = runCatching { json.decodeFromString(ReleaseJson.serializer(), text) }.getOrNull() ?: return null
@@ -71,9 +68,6 @@ private fun parseRelease(text: String, names: (version: String) -> List<String>)
 
 /** What the file of the version [version] is called in the release: "ccc_0.2.4.apk". */
 fun apkName(version: String): String = "ccc_${version.removePrefix("v")}.apk"
-
-/** The file name of releases before the version went into it. */
-const val APK_NAME = "ccc.apk"
 
 /**
  * The app's releases on GitHub (public repository): nothing is sent but the request itself —
