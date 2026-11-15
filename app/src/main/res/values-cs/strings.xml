@@ -405,6 +405,9 @@
     <string name="queue_from_routine_tag">z rutiny</string>
     <string name="queue_new_task">Nový úkol</string>
     <string name="queue_empty">Nic nečeká.</string>
+    <string name="tasks_and_routines">Úkoly a rutiny</string>
+    <string name="queue_routines_section">Rutiny</string>
+    <string name="routines_manage">Spravovat rutiny</string>
     <string name="queue_for_conversation">Konverzace</string>
     <string name="new_required">povinné</string>
     <string name="new_optional">volitelné</string>

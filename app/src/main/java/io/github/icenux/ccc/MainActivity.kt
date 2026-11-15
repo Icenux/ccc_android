@@ -260,6 +260,7 @@ private fun App(model: AppViewModel) {
             snackbar = snackbar,
             sessions = sessions,
             appUpdate = appUpdate,
+            routines = routines,
             actions = ConversationsActions(
                 open = { model.open(Screen.Conversation(it)) },
                 openQueue = { model.open(Screen.ConversationDetail(it)) },
@@ -278,6 +279,7 @@ private fun App(model: AppViewModel) {
                 renameGroup = model::renameGroup,
                 deleteGroup = model::deleteGroup,
                 routines = { model.open(Screen.Routines) },
+                enableRoutine = model.more::enableRoutine,
                 analytics = { model.open(Screen.Analytics) },
                 promptSession = { id, prompt -> model.more.promptSession(id, prompt, context.getString(R.string.prompt_queued)) },
                 applyUpdate = model::applyUpdate,

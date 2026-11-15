@@ -98,6 +98,7 @@ import io.github.icenux.ccc.data.ConversationStatus
 import io.github.icenux.ccc.data.Group
 import io.github.icenux.ccc.data.ListDetail
 import io.github.icenux.ccc.data.ListFilter
+import io.github.icenux.ccc.data.Routines
 import io.github.icenux.ccc.data.UpdateInfo
 import io.github.icenux.ccc.data.shortPath
 import io.github.icenux.ccc.ui.theme.CccColors
@@ -132,6 +133,8 @@ class ConversationsActions(
     val openTasks: (Int) -> Unit = {},
     /** A new task for a conversation (id, text, when). */
     val addTask: (Int, String, String) -> Unit = { _, _, _ -> },
+    /** A routine's switch in the Tasks & Routines tab (id, on). */
+    val enableRoutine: (Int, Boolean) -> Unit = { _, _ -> },
 )
 
 private val MARKERS = listOf(ListFilter.WORKING, ListFilter.APPROVAL, ListFilter.ERROR, ListFilter.UNSEEN)
@@ -146,6 +149,7 @@ fun ConversationsScreen(
     actions: ConversationsActions,
     sessions: List<LiveSession>? = null,
     appUpdate: AppUpdateState = AppUpdateState(),
+    routines: Routines? = null,
 ) {
     var groupMenu by remember { mutableStateOf<String?>(null) }
     var newTask by remember { mutableStateOf(false) }
@@ -174,7 +178,7 @@ fun ConversationsScreen(
                 when (state.tab) {
                     HomeTab.DASHBOARD -> Dashboard(state, listDetails, newVersion, actions, appUpdate, onCardMenu)
                     HomeTab.SESSIONS -> LiveSessionsList(sessions, actions.promptSession)
-                    HomeTab.TASKS -> QueueTab(state, actions)
+                    HomeTab.TASKS -> QueueTab(state, actions, routines)
                     else -> ConversationList(state, listDetails, newVersion, actions, appUpdate, onCardMenu) { groupMenu = it }
                 }
             }
@@ -246,7 +250,7 @@ private fun DashboardHeader(state: HomeState, actions: ConversationsActions) {
 private fun QueueHeader(state: HomeState, onBack: () -> Unit) {
     val queue = state.queue.orEmpty()
     HudHeader(
-        stringResource(R.string.tasks),
+        stringResource(R.string.tasks_and_routines),
         stringResource(R.string.queue_waiting, queue.size) +
             queue.count { it.task.byRoutine }.takeIf { it > 0 }?.let { " · " + stringResource(R.string.queue_from_routines, it) }.orEmpty(),
         onBack = onBack,
