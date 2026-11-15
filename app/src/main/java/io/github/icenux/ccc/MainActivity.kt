@@ -206,6 +206,8 @@ private fun App(model: AppViewModel) {
             ApkInstaller.install(context, apk)
         }
     }
+    // The system's "Install?" screen, opened from the app's own window (not from the receiver: MIUI blocks that).
+    LaunchedEffect(Unit) { ApkInstaller.confirm.collect { context.startActivity(it) } }
     // Back from the "install unknown apps" settings: carry on with the download that waited for it.
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
         model.installPermissionChecked(context.packageManager.canRequestPackageInstalls(), context.getString(R.string.app_install_not_allowed))
