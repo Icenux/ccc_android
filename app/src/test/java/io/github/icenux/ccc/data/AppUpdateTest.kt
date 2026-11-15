@@ -75,11 +75,11 @@ class AppUpdateTest {
 
     private val release = """{"tag_name": "v1.2.0", "body": "Dashboard", "draft": false, "prerelease": false,
         "assets": [{"name": "notes.txt", "browser_download_url": "https://x/notes"},
-                   {"name": "ccc.apk", "browser_download_url": "https://x/ccc.apk"}]}"""
+                   {"name": "ccc_1.2.0.apk", "browser_download_url": "https://x/ccc_1.2.0.apk"}]}"""
 
     @Test
     fun `reads the release with the app attached`() {
-        assertEquals(AppRelease("1.2.0", "https://x/ccc.apk", "Dashboard"), parseRelease(release))
+        assertEquals(AppRelease("1.2.0", "https://x/ccc_1.2.0.apk", "Dashboard"), parseAppRelease(release))
     }
 
     private fun releaseWith(vararg names: String, tag: String = "v1.2.0") =
@@ -87,28 +87,25 @@ class AppUpdateTest {
             names.joinToString(",") { """{"name": "$it", "browser_download_url": "https://x/$it"}""" } + "]}"
 
     @Test
-    fun `the app is found by its file named after the version, or by the old name`() {
+    fun `the app is found by its file named after the version`() {
         assertEquals("ccc_1.2.0.apk", apkName("1.2.0"))
         assertEquals("ccc_1.2.0.apk", apkName("v1.2.0"))
-        // both attached (the transition): the named one wins
-        assertEquals("https://x/ccc_1.2.0.apk", parseAppRelease(releaseWith("ccc.apk", "ccc_1.2.0.apk"))?.apkUrl)
         assertEquals("https://x/ccc_1.2.0.apk", parseAppRelease(releaseWith("ccc_1.2.0.apk"))?.apkUrl)
-        // a release from before the rename
-        assertEquals("https://x/ccc.apk", parseAppRelease(releaseWith("ccc.apk"))?.apkUrl)
-        assertEquals("1.2.0", parseAppRelease(releaseWith("ccc.apk", tag = "1.2.0"))?.version)
+        assertEquals("1.2.0", parseAppRelease(releaseWith("ccc_1.2.0.apk", tag = "1.2.0"))?.version)
     }
 
     @Test
     fun `a file named after another version is not the app of this release`() {
         assertNull(parseAppRelease(releaseWith("ccc_1.1.0.apk")))
         assertNull(parseAppRelease(releaseWith("other.apk")))
+        assertNull(parseAppRelease(releaseWith("ccc.apk")))
     }
 
     @Test
     fun `a release without the app, a draft or garbage is no release`() {
-        assertNull(parseRelease(release.replace("ccc.apk", "other.apk")))
-        assertNull(parseRelease(release.replace("\"draft\": false", "\"draft\": true")))
-        assertNull(parseRelease("""{"message": "Not Found"}"""))
+        assertNull(parseAppRelease(release.replace("ccc_1.2.0.apk", "other.apk")))
+        assertNull(parseAppRelease(release.replace("\"draft\": false", "\"draft\": true")))
+        assertNull(parseAppRelease("""{"message": "Not Found"}"""))
     }
 
     @Test
@@ -117,11 +114,11 @@ class AppUpdateTest {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/repos/o/r/releases/latest") { exchange ->
             auth = exchange.requestHeaders.getFirst("Authorization")
-            val bytes = release.replace("https://x/ccc.apk", "http://127.0.0.1:${server.address.port}/ccc.apk").toByteArray()
+            val bytes = release.replace("https://x/ccc_1.2.0.apk", "http://127.0.0.1:${server.address.port}/ccc_1.2.0.apk").toByteArray()
             exchange.sendResponseHeaders(200, bytes.size.toLong())
             exchange.responseBody.use { it.write(bytes) }
         }
-        server.createContext("/ccc.apk") { exchange ->
+        server.createContext("/ccc_1.2.0.apk") { exchange ->
             exchange.sendResponseHeaders(200, 8)
             exchange.responseBody.use { it.write("APKBYTES".toByteArray()) }
         }
