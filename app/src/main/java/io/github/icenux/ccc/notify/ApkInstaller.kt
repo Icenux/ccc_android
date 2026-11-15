@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageInstaller
 import io.github.icenux.ccc.R
 import java.io.File
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -18,6 +19,13 @@ object ApkInstaller {
 
     /** What went wrong (or null): the app shows it as a message. */
     val problem = MutableStateFlow<String?>(null)
+
+    /**
+     * The system's confirmation screen for the install. The app's window opens it (see MainActivity): a
+     * receiver starting an activity is a "background start", which MIUI/HyperOS blocks silently
+     * (the update then did nothing at all).
+     */
+    val confirm = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
 
     fun install(context: Context, apk: File) {
         val installer = context.packageManager.packageInstaller
@@ -44,7 +52,10 @@ class InstallResultReceiver : BroadcastReceiver() {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 @Suppress("DEPRECATION")
                 val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
-                confirm?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)?.let(context::startActivity)
+                confirm?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)?.let {
+                    // The open app shows it; with no window to take it, fall back to starting it from here.
+                    if (ApkInstaller.confirm.subscriptionCount.value > 0) ApkInstaller.confirm.tryEmit(it) else context.startActivity(it)
+                }
             }
             PackageInstaller.STATUS_SUCCESS -> Unit // the app is replaced and restarts
             else -> {
