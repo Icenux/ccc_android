@@ -139,6 +139,17 @@ open class ScreenshotsTest {
     }
 
     @Test
+    fun askQuestion() {
+        val screen = "──────────────\n ☐ Approach\n\nWhich approach should we use for the rate limit?\n\n" +
+            "❯ 1. Token bucket\n     Smooth, allows short bursts\n  2. Fixed window\n     Simple, but spikes at the edges\n  3. Type something.\n" +
+            "──────────────\n  4. Chat about this\n\nEnter to select · ↑/↓ to navigate · Esc to cancel\n"
+        val prompt = io.github.icenux.ccc.data.TerminalPrompts.detect(screen)!!
+        shot("ask_question", "Which approach") {
+            ConversationScreen(conversation.copy(prompt = prompt), home.promptPresets, home.ownGroups, false, SnackbarHostState(), conversationActions)
+        }
+    }
+
+    @Test
     fun mention() = shot("mention", "src/api/limits.py") {
         ConversationScreen(
             conversation.copy(mentions = listOf("src/api/limits.py", "src/api/orders.py", "tests/api/test_limits.py")),

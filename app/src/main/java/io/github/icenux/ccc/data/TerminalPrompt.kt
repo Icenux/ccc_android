@@ -23,6 +23,8 @@ object TerminalPrompts {
     private val FOOTER = Regex("""(?i)esc to (cancel|exit|go back)|enter to (select|confirm)""")
     private const val QUESTION_LINES = 8
     private const val BODY_LINES = 40
+    /** The most lines a menu spans: options with a description each. */
+    private const val MENU_LINES = 40
     /** A horizontal rule or the top of a box: where Claude Code's dialog starts. */
     private val RULE = Regex("""^[\s─━═╭╮╰╯┄┈╌-]{3,}$""")
     private const val BOX = "│┃║"
@@ -40,11 +42,12 @@ object TerminalPrompts {
         val framed = raw[last].trim().firstOrNull()?.let { it in BOX } == true
         val footer = lines.drop(last + 1).any { FOOTER.containsMatchIn(it) }
         if (!framed && !footer) return null
-        // The block of options upwards from the last one; a long label may continue on indented lines.
+        // The block of options upwards from the last one, to the option 1. Between them may be a description under
+        // an option (AskUserQuestion) and a rule before the closing "Chat about this"; both belong to the menu.
         var first = last
-        while (first > 0) {
-            val above = lines[first - 1]
-            if (OPTION.matches(above) || (above.isNotBlank() && above.startsWith("    ") && first - 1 > 0)) first-- else break
+        while (first > 0 && lines.size - first < MENU_LINES) {
+            if (OPTION.matches(lines[first]) && lines[first].trimStart('❯', ' ').startsWith("1.")) break
+            first--
         }
         while (first < last && !OPTION.matches(lines[first])) first++
         val options = mutableListOf<PromptOption>()
@@ -52,7 +55,7 @@ object TerminalPrompts {
             val match = OPTION.matchEntire(lines[i])
             if (match != null) {
                 options += PromptOption(match.groupValues[2].toInt(), match.groupValues[3].trim(), match.groupValues[1].isNotEmpty())
-            } else if (options.isNotEmpty()) {
+            } else if (options.isNotEmpty() && lines[i].isNotBlank() && !RULE.matches(lines[i])) {
                 val previous = options.removeAt(options.lastIndex)
                 options += previous.copy(label = previous.label + " " + lines[i].trim())
             }

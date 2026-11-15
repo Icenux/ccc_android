@@ -76,4 +76,16 @@ class TerminalPromptTest {
         assertEquals(true, prompt.body.contains("> /etc/passwd"))
         assertEquals(true, prompt.body.contains("Bash command"))
     }
+
+    @Test
+    fun askUserQuestionWithDescriptions() {
+        val screen = "──────────────\n ☐ Approach\n\nWhich approach should we use?\n\n" +
+            "❯ 1. Option A\n     Fast but rough\n  2. Option B\n     Slow but careful\n  3. Type something.\n" +
+            "──────────────\n  4. Chat about this\n\nEnter to select · ↑/↓ to navigate · Esc to cancel\n"
+        val prompt = TerminalPrompts.detect(screen)!!
+        assertEquals("Which approach should we use?", prompt.question)
+        assertEquals(listOf(1, 2, 3, 4), prompt.options.map { it.number })
+        assertEquals("Option A Fast but rough", prompt.options[0].label)
+        assertEquals(listOf(true, false, false, false), prompt.options.map { it.selected })
+    }
 }

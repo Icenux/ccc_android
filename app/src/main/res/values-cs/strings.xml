@@ -428,6 +428,7 @@
     <string name="took_for">trvalo %1$s</string>
     <string name="jump_to_newest">Na nejnovější</string>
     <string name="prompt_title">Claude Code se ptá v terminálu</string>
+    <string name="prompt_title_named">%1$s se ptá v terminálu</string>
     <string name="prompt_cancel">Zrušit (Esc)</string>
     <string name="prompt_changed">Otázka se změnila — podívej se na ni znovu</string>
     <string name="prompt_truncated">Ukázala se jen část otázky — před odpovědí zkontroluj terminál</string>
