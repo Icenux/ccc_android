@@ -82,6 +82,28 @@ class AppUpdateTest {
         assertEquals(AppRelease("1.2.0", "https://x/ccc.apk", "Dashboard"), parseRelease(release))
     }
 
+    private fun releaseWith(vararg names: String, tag: String = "v1.2.0") =
+        """{"tag_name": "$tag", "body": "", "draft": false, "prerelease": false, "assets": [""" +
+            names.joinToString(",") { """{"name": "$it", "browser_download_url": "https://x/$it"}""" } + "]}"
+
+    @Test
+    fun `the app is found by its file named after the version, or by the old name`() {
+        assertEquals("ccc_1.2.0.apk", apkName("1.2.0"))
+        assertEquals("ccc_1.2.0.apk", apkName("v1.2.0"))
+        // both attached (the transition): the named one wins
+        assertEquals("https://x/ccc_1.2.0.apk", parseAppRelease(releaseWith("ccc.apk", "ccc_1.2.0.apk"))?.apkUrl)
+        assertEquals("https://x/ccc_1.2.0.apk", parseAppRelease(releaseWith("ccc_1.2.0.apk"))?.apkUrl)
+        // a release from before the rename
+        assertEquals("https://x/ccc.apk", parseAppRelease(releaseWith("ccc.apk"))?.apkUrl)
+        assertEquals("1.2.0", parseAppRelease(releaseWith("ccc.apk", tag = "1.2.0"))?.version)
+    }
+
+    @Test
+    fun `a file named after another version is not the app of this release`() {
+        assertNull(parseAppRelease(releaseWith("ccc_1.1.0.apk")))
+        assertNull(parseAppRelease(releaseWith("other.apk")))
+    }
+
     @Test
     fun `a release without the app, a draft or garbage is no release`() {
         assertNull(parseRelease(release.replace("ccc.apk", "other.apk")))

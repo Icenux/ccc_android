@@ -53,13 +53,26 @@ private val json = Json { ignoreUnknownKeys = true }
  * or a tag that isn't a version. The same rules as ccc's own (src/ccc/releases.py): both are tested against
  * tests/fixtures/release-rules.json.
  */
-fun parseRelease(text: String, asset: String = APK_NAME): AppRelease? {
+fun parseRelease(text: String, asset: String = APK_NAME): AppRelease? = parseRelease(text) { listOf(asset) }
+
+/**
+ * The app's release: the file is named after the version ([apkName], "ccc_1.2.0.apk"); releases up to 0.2.4
+ * attach only the old [APK_NAME] ("ccc.apk"), and newer ones attach both while older apps still look for that.
+ */
+fun parseAppRelease(text: String): AppRelease? = parseRelease(text) { listOf(apkName(it), APK_NAME) }
+
+private fun parseRelease(text: String, names: (version: String) -> List<String>): AppRelease? {
     val release = runCatching { json.decodeFromString(ReleaseJson.serializer(), text) }.getOrNull() ?: return null
     if (release.draft || release.prerelease || Versions.parse(release.tag) == null) return null
-    val apk = release.assets.firstOrNull { it.name == asset } ?: return null
-    return AppRelease(release.tag.removePrefix("v"), apk.url, release.body.orEmpty().trim())
+    val version = release.tag.removePrefix("v")
+    val apk = names(version).firstNotNullOfOrNull { name -> release.assets.firstOrNull { it.name == name } } ?: return null
+    return AppRelease(version, apk.url, release.body.orEmpty().trim())
 }
 
+/** What the file of the version [version] is called in the release: "ccc_0.2.4.apk". */
+fun apkName(version: String): String = "ccc_${version.removePrefix("v")}.apk"
+
+/** The file name of releases before the version went into it. */
 const val APK_NAME = "ccc.apk"
 
 /**
@@ -80,7 +93,7 @@ class ReleaseApi(
             .header("Accept", "application/vnd.github+json").build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return@use null
-            parseRelease(response.body?.string().orEmpty())
+            parseAppRelease(response.body?.string().orEmpty())
         }
     }
 
