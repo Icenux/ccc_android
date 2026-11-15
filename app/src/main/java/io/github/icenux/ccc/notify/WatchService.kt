@@ -21,7 +21,10 @@ import io.github.icenux.ccc.R
 import io.github.icenux.ccc.data.Alert
 import io.github.icenux.ccc.data.Alerts
 import io.github.icenux.ccc.data.ApiException
+import io.github.icenux.ccc.data.AlertKind
 import io.github.icenux.ccc.data.CccApi
+import io.github.icenux.ccc.data.ConversationStatus
+import io.github.icenux.ccc.data.TerminalPrompts
 import io.github.icenux.ccc.data.Settings
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
@@ -137,6 +140,24 @@ class WatchService : Service() {
         changes.show.forEach { post(this, it) }
         settings.shownAlerts = settings.shownAlerts - changes.gone + changes.show.map { it.key }
         refreshWatching(api)
+    }
+
+    /** Questions Claude Code asks in the terminal of a running interactive conversation; ccc's own approvals don't cover them. */
+    private suspend fun questions(api: CccApi): List<Alert.Question> {
+        if (AlertKind.APPROVAL !in Settings(this).alertKinds) return emptyList()
+        val running = try {
+            api.conversations().filter { !it.archived && it.deliveryMode.let { m -> m == "interactive" || m == "remote_control" } }
+                .filter { it.state == ConversationStatus.RUNNING || it.state == ConversationStatus.IDLE }
+        } catch (e: IOException) {
+            return emptyList()
+        }
+        return running.mapNotNull { c ->
+            try {
+                TerminalPrompts.detect(api.terminal(c.id).screen)?.let { Alert.Question(c.id, c.name, it) }
+            } catch (e: IOException) {
+                null
+            }
+        }
     }
 
     /** The always-there notification: plain, or (as chosen) with the usage and the conversation counts. */
@@ -284,6 +305,17 @@ class WatchService : Service() {
                     }
                     builder
                 }
+                is Alert.Question -> NotificationCompat.Builder(context, CHANNEL_APPROVALS)
+                    .setContentTitle(context.getString(R.string.prompt_title_named, alert.name))
+                    .setContentText(alert.prompt.question.ifBlank { alert.prompt.options.first().label }.take(200))
+                    .setContentIntent(openApp(context, alert.conversationId))
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .setPublicVersion(NotificationCompat.Builder(context, CHANNEL_APPROVALS)
+                        .setSmallIcon(R.drawable.ic_notification)
+                        .setContentTitle(context.getString(R.string.approval_waiting)).build())
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .setAutoCancel(true)
                 is Alert.Update -> NotificationCompat.Builder(context, CHANNEL_NEEDS_YOU)
                     .setContentTitle(context.getString(R.string.update_notification_title))
                     .setContentText(context.getString(R.string.update_notification_text, alert.behind))

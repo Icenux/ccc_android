@@ -18,6 +18,12 @@ sealed interface Alert {
         override val kind get() = waiting.kind
     }
 
+    /** Claude Code asks in its terminal (a choice, a plan): once per question, as it reads on the screen. */
+    data class Question(val conversationId: Int, val name: String, val prompt: TerminalPrompt) : Alert {
+        override val key get() = "q:$conversationId:${(prompt.question + prompt.options.joinToString { it.label }).hashCode()}"
+        override val kind get() = AlertKind.APPROVAL
+    }
+
     /** The account itself is out of usage in one window ("5h" / "7d"): once per exhausted window. */
     data class UsageLimit(val window: String, val resetsAt: String?) : Alert {
         override val key get() = "l:$window"
@@ -60,10 +66,11 @@ object Alerts {
         update: UpdateInfo? = null,
         kinds: Set<String> = AlertKind.DEFAULT,
         usage: Usage? = null,
+        questions: List<Alert.Question> = emptyList(),
     ): AlertChanges {
         val news = update?.takeIf { it.available && !it.remoteHead.isNullOrEmpty() }?.let { listOf(Alert.Update(it.behind, it.remoteHead!!)) }
             .orEmpty()
-        val now = (permissions.map(Alert::Approval) + waiting.filter { it.kind != "approval" }.map(Alert::NeedsYou) + news +
+        val now = (permissions.map(Alert::Approval) + waiting.filter { it.kind != "approval" }.map(Alert::NeedsYou) + questions + news +
             exhausted(usage))
             // A kind the app doesn't know is never switched off.
             .filter { it.kind in kinds || it.kind !in AlertKind.ALL }
