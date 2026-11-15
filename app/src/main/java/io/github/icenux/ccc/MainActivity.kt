@@ -295,6 +295,7 @@ private fun App(model: AppViewModel) {
                 ownGroups = home.ownGroups,
                 enterSends = enterSends,
                 snackbar = snackbar,
+                drafts = model.drafts,
                 actions = ConversationActions(
                     back = model::back,
                     send = model::send,
@@ -446,6 +447,7 @@ private fun App(model: AppViewModel) {
                     keys = model.more::terminalKeys,
                     type = model.more::terminalType,
                 ),
+                drafts = model.drafts,
             )
         }
         Screen.Search -> SearchScreen(

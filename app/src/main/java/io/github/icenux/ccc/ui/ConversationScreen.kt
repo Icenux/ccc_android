@@ -145,9 +145,10 @@ fun ConversationScreen(
     enterSends: Boolean,
     snackbar: SnackbarHostState,
     actions: ConversationActions,
+    drafts: DraftStore = remember { DraftStore() },
 ) {
     val detail = state.detail
-    var draft by rememberSaveable(state.id, stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue("")) }
+    var draft by drafts.of(state.id)
     var menu by remember { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<String?>(null) }
     // A "send at once" preset is only sent after this confirmation (a stray tap must not send).
