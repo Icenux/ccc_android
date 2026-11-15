@@ -402,6 +402,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Agents, routines, live sessions, analytics, ccc's settings. */
+    /** Half-written prompts, shared by the conversation and its terminal. */
+    val drafts = DraftStore()
+
     val more = MoreModel(viewModelScope, { block -> guard { api?.let { block(it) } } }, { _message.value = it })
 
     private var searching: Job? = null

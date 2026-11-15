@@ -35,6 +35,8 @@ import kotlinx.coroutines.flow.filter
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -97,8 +99,8 @@ class TerminalActions(
 
 /** A conversation's Claude Code, live: its screen every second, keys and text into it. */
 @Composable
-fun TerminalScreen(state: TerminalState, name: String, snackbar: SnackbarHostState, actions: TerminalActions) {
-    var draft by rememberSaveable { mutableStateOf("") }
+fun TerminalScreen(state: TerminalState, name: String, snackbar: SnackbarHostState, actions: TerminalActions, drafts: DraftStore = remember { DraftStore() }) {
+    val draft = drafts[state.id].text
     val vertical = rememberScrollState()
     val shown = state.terminal
     // Follow the newest lines only while the person is at the bottom: scrolled up to read, the screen stays put.
@@ -117,9 +119,9 @@ fun TerminalScreen(state: TerminalState, name: String, snackbar: SnackbarHostSta
                     ANSWERS.forEach { answer -> AssistChip(onClick = { actions.type(answer) }, label = { Text(answer) }) }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(draft, { draft = it }, Modifier.weight(1f),
+                    OutlinedTextField(draft, { drafts[state.id] = TextFieldValue(it, TextRange(it.length)) }, Modifier.weight(1f),
                         placeholder = { Text(stringResource(R.string.terminal_hint)) }, maxLines = 4)
-                    IconButton(onClick = { actions.paste(draft, true); draft = "" }, enabled = draft.isNotBlank()) {
+                    IconButton(onClick = { actions.paste(draft, true); drafts[state.id] = TextFieldValue("") }, enabled = draft.isNotBlank()) {
                         Icon(Icons.AutoMirrored.Filled.Send, stringResource(R.string.send), tint = CccColors.Title)
                     }
                 }
