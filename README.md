@@ -14,7 +14,7 @@ conversations and check the usage limits — from your phone, privately over
 
 Android 10 or newer.
 
-1. Download `ccc.apk` from the [latest release](https://github.com/Icenux/ccc_android/releases/latest).
+1. Download `ccc_X.Y.Z.apk` (the file named after the version) from the [latest release](https://github.com/Icenux/ccc_android/releases/latest).
 2. Open it on the phone (Android asks once to allow installs from that source).
 3. In ccc on the computer run `ccc api pair` (or *Settings → Devices… → Pair a new device*) and tap
    *Scan QR code* in the app.
@@ -26,7 +26,7 @@ The app holds no secret: the one-time QR code gives the phone a token made for t
 ```bash
 sha256sum -c SHA256SUMS                                                         # the file matches the list
 gpg --import release-signing-key.asc && gpg --verify SHA256SUMS.asc SHA256SUMS  # the list is signed by the maintainer
-apksigner verify --print-certs ccc.apk                                          # the app is signed with the maintainer's key
+apksigner verify --print-certs ccc_X.Y.Z.apk                                   # the app is signed with the maintainer's key
 ```
 
 Signing certificate SHA-256:

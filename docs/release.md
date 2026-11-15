@@ -15,15 +15,12 @@ for example `ccc_0.2.3.apk`. Otherwise the user cannot tell which version they h
 `SHA256SUMS` must list that name (`sha256sum -c` has to pass); `SHA256SUMS` and `SHA256SUMS.asc` keep
 their names.
 
-**Current state:** releases up to 0.2.3 attach `ccc.apk`. The rename is not done yet. It cannot be done
-in the release script alone: the app finds updates by the exact asset name (`APK_NAME` in
-`AppUpdate.kt`; also `ApkInstaller.kt`, `AppViewModel.kt` and `AppUpdateTest.kt`), and it shares its rules
-with ccc through `tests/fixtures/release-rules.json` (ccc keeps the original in `ccc_TUI`). So:
-
-1. Teach the updater to accept `ccc_<version>.apk` — the same rule in the app and in ccc, tests in both.
-2. For a transition period attach **both** `ccc_X.Y.Z.apk` and the old `ccc.apk`; otherwise installed
-   older versions do not find the new release and never update themselves.
-3. Update `README.md`, `SECURITY.md` and ccc's `help/*/android-api.md` (they name `ccc.apk`).
+**Both names are attached.** Every release carries `ccc_X.Y.Z.apk` and, for the same file, the old `ccc.apk`:
+installed app versions up to 0.2.4 look for the exact name `ccc.apk` and would otherwise never find a new
+release. The app now looks for `ccc_<version>.apk` first and falls back to `ccc.apk` (`parseAppRelease` in
+`AppUpdate.kt`, tests in `AppUpdateTest.kt`). ccc (TUI) never reads the app's releases, so
+`tests/fixtures/release-rules.json` stays as it is; only ccc's `help/*/android-api.md` should mention the new name.
+`SHA256SUMS` lists both names. Drop `ccc.apk` only when no installed app older than the rename is left.
 
 ## Steps
 
