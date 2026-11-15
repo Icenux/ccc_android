@@ -890,7 +890,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun showTab(tab: HomeTab) {
         _home.update { it.copy(tab = tab) }
         if (tab == HomeTab.SESSIONS) more.loadSessions()
-        if (tab == HomeTab.TASKS) viewModelScope.launch { loadQueue() }
+        if (tab == HomeTab.TASKS) {
+            viewModelScope.launch { loadQueue() }
+            more.loadRoutines()
+        }
     }
 
     /** Every conversation's waiting tasks: scheduled ones by time after the ones that may go now. */

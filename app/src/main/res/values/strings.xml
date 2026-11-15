@@ -403,6 +403,9 @@
     <string name="queue_from_routine_tag">from a routine</string>
     <string name="queue_new_task">New task</string>
     <string name="queue_empty">Nothing is waiting.</string>
+    <string name="tasks_and_routines">Tasks &amp; Routines</string>
+    <string name="queue_routines_section">Routines</string>
+    <string name="routines_manage">Manage routines</string>
     <string name="queue_for_conversation">Conversation</string>
     <string name="new_required">required</string>
     <string name="new_optional">optional</string>

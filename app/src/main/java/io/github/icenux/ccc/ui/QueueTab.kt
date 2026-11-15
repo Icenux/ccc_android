@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.icenux.ccc.R
 import io.github.icenux.ccc.data.Conversation
+import io.github.icenux.ccc.data.Routine
+import io.github.icenux.ccc.data.Routines
 import io.github.icenux.ccc.ui.theme.CccColors
 
 private val PURPLE = Color(0xFFA78BFA)
@@ -54,7 +57,7 @@ private val BAR_HEIGHTS = listOf(0.45f, 0.75f, 0.55f, 0.95f, 0.6f, 1f, 0.5f, 0.8
 
 /** The Tasks tab: everything waiting in every conversation's queue, with filters. A tap opens that queue. */
 @Composable
-internal fun QueueTab(state: HomeState, actions: ConversationsActions) {
+internal fun QueueTab(state: HomeState, actions: ConversationsActions, routines: Routines? = null) {
     var filter by rememberSaveable { mutableIntStateOf(0) }
     val queue = state.queue
     val all = queue.orEmpty()
@@ -92,6 +95,40 @@ internal fun QueueTab(state: HomeState, actions: ConversationsActions) {
             val index = all.indexOf(entry)
             TaskEntry(entry, number = index + 1, next = index == 0 && entry.task.notBefore == null && !entry.paused,
                 Modifier.animateItem().staggeredEntry(index)) { actions.openTasks(entry.conversationId) }
+        }
+        // The routines stay until you delete them: under the queue, a tap manages them (RoutinesScreen).
+        item(key = "routines-head") {
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Caption(stringResource(R.string.queue_routines_section) + routines?.let { " ${it.routines.size}" }.orEmpty(), Modifier.weight(1f))
+                TextButton(onClick = actions.routines) { Text(stringResource(R.string.routines_manage)) }
+            }
+        }
+        if (routines != null && routines.routines.isEmpty()) {
+            item(key = "routines-empty") {
+                Text(stringResource(R.string.routines_empty), Modifier.fillMaxWidth().padding(8.dp), color = CccColors.Muted)
+            }
+        }
+        items(routines?.routines.orEmpty(), key = { "routine:${it.id}" }) { routine ->
+            RoutineEntry(routine, Modifier.animateItem(), onClick = actions.routines) { actions.enableRoutine(routine.id, it) }
+        }
+    }
+}
+
+@Composable
+private fun RoutineEntry(routine: Routine, modifier: Modifier, onClick: () -> Unit, onEnabled: (Boolean) -> Unit) {
+    val next = shortTime(routine.nextRunAt)?.takeIf { routine.enabled }
+    HudPanel(modifier, brackets = false, accent = CccColors.Line, onClick = onClick, contentPadding = PaddingValues(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(routine.name.ifEmpty { routine.prompt }, style = MaterialTheme.typography.bodyLarge, color = CccColors.Text,
+                    fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    listOfNotNull(routine.schedule.ifEmpty { null }, routine.conversation.ifEmpty { null },
+                        next?.let { stringResource(R.string.routine_next, it) }).joinToString(" · "),
+                    style = MaterialTheme.typography.labelMedium, color = CccColors.Faint, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Switch(checked = routine.enabled, onCheckedChange = onEnabled)
         }
     }
 }

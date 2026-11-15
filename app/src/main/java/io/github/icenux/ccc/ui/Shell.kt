@@ -255,16 +255,14 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
     val home = state.home
     val onMain = state.screen == Screen.Conversations
     val screen = state.screen
-    val purple = Color(0xFFA78BFA)
     val pink = Color(0xFFFF6B9A)
     val places = listOf(
         MenuEntry(HudIcons.Shield, stringResource(R.string.approvals), CccColors.Red, screen == Screen.Approvals,
             home.permissions.size.takeIf { it > 0 }?.toString(), CccColors.Red) { it.screen(Screen.Approvals) },
-        MenuEntry(HudIcons.Tasks, stringResource(R.string.tasks), CccColors.Amber, onMain && home.tab == HomeTab.TASKS,
+        MenuEntry(HudIcons.Tasks, stringResource(R.string.tasks_and_routines), CccColors.Amber, onMain && home.tab == HomeTab.TASKS,
             home.conversations.sumOf { it.pending }.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.TASKS) },
         MenuEntry(HudIcons.Archive, stringResource(R.string.archive), CccColors.Dim, onMain && home.tab == HomeTab.ARCHIVE,
             home.archived.size.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.ARCHIVE) },
-        MenuEntry(HudIcons.Routines, stringResource(R.string.routines), purple, screen == Screen.Routines) { it.screen(Screen.Routines) },
         MenuEntry(HudIcons.Helper, stringResource(R.string.subagents), CccColors.Claude, screen == Screen.Subagents) { it.screen(Screen.Subagents) },
         MenuEntry(HudIcons.Live, stringResource(R.string.live_sessions), pink, onMain && home.tab == HomeTab.SESSIONS,
             state.liveSessions?.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.SESSIONS) },
