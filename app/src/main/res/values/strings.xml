@@ -495,4 +495,8 @@
     <string name="plugins_none">No Claude Code plugins are installed.</string>
     <string name="agents_none">This folder has no agents (.claude/agents).</string>
     <string name="error_unreadable">ccc answered, but the app cannot read the answer. Update the app or ccc.</string>
+    <string name="unreachable_title">ccc can\'t be reached</string>
+    <string name="unreachable_text">The app can\'t connect to %1$s. The computer may be off or out of your tailnet, or ccc may have moved to another computer.</string>
+    <string name="unreachable_retry">Try again</string>
+    <string name="unreachable_change">Connect to another computer</string>
 </resources>

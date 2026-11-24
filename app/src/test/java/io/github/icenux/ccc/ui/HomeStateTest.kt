@@ -8,4 +8,9 @@ class HomeStateTest {
     fun `the app opens on the Dashboard`() {
         assertEquals(HomeTab.DASHBOARD, HomeState().tab)
     }
+
+    @Test
+    fun `a fresh state is not unreachable`() {
+        assertEquals(false, HomeState().unreachable)
+    }
 }

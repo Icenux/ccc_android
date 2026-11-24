@@ -493,4 +493,8 @@
     <string name="plugins_none">Nejsou nainstalované žádné pluginy Claude Code.</string>
     <string name="agents_none">Tato složka nemá žádné agenty (.claude/agents).</string>
     <string name="error_unreadable">ccc odpovědělo, ale aplikace odpověď nepřečte. Aktualizuj aplikaci nebo ccc.</string>
+    <string name="unreachable_title">ccc není dostupné</string>
+    <string name="unreachable_text">Aplikace se nemůže připojit k %1$s. Počítač může být vypnutý nebo mimo tvůj tailnet, nebo se ccc přestěhovalo na jiný počítač.</string>
+    <string name="unreachable_retry">Zkusit znovu</string>
+    <string name="unreachable_change">Připojit k jinému počítači</string>
 </resources>

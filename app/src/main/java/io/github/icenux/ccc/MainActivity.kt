@@ -255,7 +255,14 @@ private fun App(model: AppViewModel) {
             onPair = model::pair,
             onInviteDismissed = model::inviteDismissed,
         )
-        Screen.Conversations -> ConversationsScreen(
+        Screen.Conversations -> if (home.unreachable && !home.loaded) {
+            // The paired ccc doesn't answer and nothing was loaded (#72): the person decides instead of waiting.
+            io.github.icenux.ccc.ui.ServerUnreachable(
+                server = model.server,
+                onRetry = model::retryServer,
+                onChangeServer = model::changeServer,
+            )
+        } else ConversationsScreen(
             state = home,
             listDetails = listDetails,
             newVersion = newVersion,
