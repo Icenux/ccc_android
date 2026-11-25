@@ -269,6 +269,25 @@
     <string name="routine_run">Run now</string>
     <string name="routines">Routines</string>
     <string name="routines_empty">No routines yet.</string>
+    <!-- ccc's own notes (Markdown files shared with the computer, ccc #223) -->
+    <string name="notes">Notes</string>
+    <string name="notes_hint">Markdown notes kept in ccc\'s folder on the computer: what you write here is in ccc a moment later, and the other way round.</string>
+    <string name="notes_search">Search the notes</string>
+    <string name="notes_empty">No notes yet. Write the first one with +.</string>
+    <string name="notes_no_match">No note matches.</string>
+    <string name="note_add">New note</string>
+    <string name="note_name">Name</string>
+    <string name="note_name_hint">A folder can come first: ideas/api</string>
+    <string name="note_text">Text (Markdown)</string>
+    <string name="note_preview">Preview</string>
+    <string name="note_write">Write</string>
+    <string name="note_rename">Rename</string>
+    <string name="note_delete_title">Delete note</string>
+    <string name="note_delete_text">Delete the note %1$s? The file moves to ccc\'s folder deleted-notes on the computer, it is not erased.</string>
+    <string name="note_discard_title">Unsaved text</string>
+    <string name="note_discard_text">The changes are not saved. Leave without saving?</string>
+    <string name="note_discard">Leave</string>
+    <string name="note_conflict_saved">The note changed on the computer meanwhile. Your edit is saved as %1$s.</string>
     <!-- Claude Code agents (the files in .claude/agents) -->
     <string name="subagents">Agents</string>
     <string name="subagents_hint">Helpers with one job that Claude Code calls by itself. Each is a file in a project\'s .claude/agents or in yours.</string>

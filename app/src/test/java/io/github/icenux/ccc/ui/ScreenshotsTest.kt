@@ -204,6 +204,23 @@ open class ScreenshotsTest {
     }
 
     @Test
+    fun notes() = shot("notes", "Shopping list") {
+        NotesScreen(notesState, SnackbarHostState(), notesActions)
+    }
+
+    /** A text field never gets "idle" in Robolectric (the cursor keeps blinking): the clock is stepped by hand. */
+    @Test
+    fun note_editor() {
+        compose.setContent { CccTheme { NotesScreen(notesState.copy(open = notesState.notes!![0].copy(content = noteText)), SnackbarHostState(), notesActions) } }
+        compose.mainClock.autoAdvance = false
+        repeat(30) {
+            compose.mainClock.advanceTimeByFrame()
+            org.robolectric.shadows.ShadowLooper.idleMainLooper()
+        }
+        save("note_editor")
+    }
+
+    @Test
     fun subagent_runs() = shot("subagent_runs", "Find usages") {
         SubagentRunsScreen("shop-api", RunsState(1, runs = runsSample), {}, {})
     }
@@ -507,6 +524,16 @@ open class ScreenshotsTest {
                     )),
                 io.github.icenux.ccc.data.SubagentRun("a3", parentId = "a1", kind = "Explore", description = "Check the callers in the app", status = "running",
                     started = "2026-10-22T10:01:00Z", durationMs = 70_000, tokens = 36_000, toolCount = 5, model = "haiku", depth = 2),
+            ),
+        )
+
+        val notesActions = NotesActions({}, {}, {}, {}, {}, { _, _, _ -> }, { _, _ -> }, {})
+        const val noteText = "# Shopping list\n\n- [ ] coffee\n- [ ] AA batteries\n- [x] milk\n\nRemember the **receipt** for the warranty.\n"
+        val notesState = io.github.icenux.ccc.ui.NotesState(
+            notes = listOf(
+                io.github.icenux.ccc.data.Note("shopping.md", "Shopping list", 96, "2026-11-25T18:21:00+01:00", "96-1"),
+                io.github.icenux.ccc.data.Note("ideas/api-for-android.md", "Notes in the API for Android", 410, "2026-11-25T09:05:00+01:00", "410-1"),
+                io.github.icenux.ccc.data.Note("work/monday-meeting.md", "Monday meeting", 180, "2026-11-23T14:30:00+01:00", "180-1"),
             ),
         )
 

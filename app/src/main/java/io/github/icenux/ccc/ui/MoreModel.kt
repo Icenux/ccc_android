@@ -1,10 +1,12 @@
 package io.github.icenux.ccc.ui
 
 import io.github.icenux.ccc.data.Analytics
+import io.github.icenux.ccc.data.ApiException
 import io.github.icenux.ccc.data.CccApi
 import io.github.icenux.ccc.data.CccSettings
 import io.github.icenux.ccc.data.Goals
 import io.github.icenux.ccc.data.LiveSession
+import io.github.icenux.ccc.data.Note
 import io.github.icenux.ccc.data.PromptPreset
 import io.github.icenux.ccc.data.Reviews
 import io.github.icenux.ccc.data.Routine
@@ -47,6 +49,13 @@ data class SubagentsState(
     val agents: List<Subagent>? = null,
     val options: SubagentOptions? = null,
     val editing: Subagent? = null,
+)
+
+/** The notes list ([query] filters it), and the note being written ([open]; one without a version is new). */
+data class NotesState(
+    val query: String = "",
+    val notes: List<Note>? = null,
+    val open: Note? = null,
 )
 
 /**
@@ -96,6 +105,9 @@ class MoreModel(
     fun closeAgents() {
         _agents.value = null
     }
+
+    private val _notes = MutableStateFlow(NotesState())
+    val notes: StateFlow<NotesState> = _notes.asStateFlow()
 
     suspend fun reloadAgents(id: Int) {
         if (_agents.value?.id != id) return
@@ -148,6 +160,83 @@ class MoreModel(
     fun runRoutine(id: Int) = go { api ->
         say(api.runRoutine(id).label)
         _routines.value = api.routines()
+    }
+
+    // --- notes (ccc's Markdown files, ccc #223) ----------------------------------------------------
+
+    fun openNotes() = loadNotes(_notes.value.query)
+
+    fun loadNotes(query: String) {
+        _notes.update { it.copy(query = query) }
+        go { api ->
+            val found = api.notes(query)
+            _notes.update { if (it.query == query) it.copy(notes = found) else it }
+        }
+    }
+
+    /** Open one note whole (the list has no text). */
+    fun openNote(path: String) = go { api -> _notes.update { it.copy(open = api.note(path)) } }
+
+    /** Start a note under [typed] (a name, folders with /); nothing exists until it is saved. */
+    fun newNote(typed: String) {
+        val path = Note.pathOf(typed)
+        if (path.isNotEmpty()) _notes.update { it.copy(open = Note(path)) }
+    }
+
+    fun closeNote() {
+        _notes.update { it.copy(open = null) }
+        loadNotes(_notes.value.query)
+    }
+
+    /**
+     * Save [note] with [content]. A note changed on the computer meanwhile is not overwritten: the edit is kept as a note of its
+     * own next to it ([conflictSaid] tells where). [then] says whether it worked (the editor stays open when it did not).
+     */
+    fun saveNote(note: Note, content: String, conflictSaid: (String) -> String, then: (Boolean) -> Unit = {}) {
+        scope.launch {
+            val ok = run { api ->
+                if (note.isNew) {
+                    _notes.update { it.copy(open = api.createNote(note.path, content)) }
+                } else {
+                    try {
+                        _notes.update { it.copy(open = api.updateNote(note.path, content, note.version)) }
+                    } catch (e: ApiException) {
+                        if (e.code != 409) throw e
+                        var number = 1
+                        var copy = Note.conflictPath(note.path, number)
+                        while (true) {
+                            try {
+                                api.createNote(copy, content)
+                                break
+                            } catch (again: ApiException) {
+                                if (again.code != 409 || number >= 99) throw again
+                                copy = Note.conflictPath(note.path, ++number)
+                            }
+                        }
+                        say(conflictSaid(copy))
+                        _notes.update { it.copy(open = null) }
+                    }
+                }
+            }
+            if (ok) loadNotes(_notes.value.query)
+            then(ok)
+        }
+    }
+
+    fun renameNote(note: Note, typed: String, then: (Boolean) -> Unit = {}) {
+        val to = Note.pathOf(typed)
+        if (to.isEmpty() || to == note.path) return
+        scope.launch {
+            val ok = run { api -> _notes.update { it.copy(open = api.renameNote(note.path, to)) } }
+            if (ok) loadNotes(_notes.value.query)
+            then(ok)
+        }
+    }
+
+    fun deleteNote(note: Note) = go { api ->
+        api.deleteNote(note.path)
+        _notes.update { it.copy(open = null) }
+        loadNotes(_notes.value.query)
     }
 
     // --- agents (the files in .claude/agents) ------------------------------------------------------

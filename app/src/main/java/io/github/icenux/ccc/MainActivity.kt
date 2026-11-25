@@ -33,6 +33,8 @@ import io.github.icenux.ccc.ui.AppViewModel
 import io.github.icenux.ccc.ui.CccSettingsScreen
 import io.github.icenux.ccc.ui.RoutinesActions
 import io.github.icenux.ccc.ui.RoutinesScreen
+import io.github.icenux.ccc.ui.NotesActions
+import io.github.icenux.ccc.ui.NotesScreen
 import io.github.icenux.ccc.ui.SubagentsActions
 import io.github.icenux.ccc.ui.SubagentsScreen
 import io.github.icenux.ccc.notify.WatchService
@@ -122,6 +124,7 @@ private fun App(model: AppViewModel) {
     val agents by model.more.agents.collectAsStateWithLifecycle()
     val routines by model.more.routines.collectAsStateWithLifecycle()
     val subagents by model.more.subagents.collectAsStateWithLifecycle()
+    val notes by model.more.notes.collectAsStateWithLifecycle()
     val sessions by model.more.sessions.collectAsStateWithLifecycle()
     val analytics by model.more.analytics.collectAsStateWithLifecycle()
     val cccSettings by model.more.settings.collectAsStateWithLifecycle()
@@ -391,6 +394,20 @@ private fun App(model: AppViewModel) {
                 create = { agent, then -> model.more.createSubagent(agent, context.getString(R.string.subagent_restart), then) },
                 delete = model.more::deleteSubagent,
                 prompt = model.more::subagentPrompt,
+            ),
+        )
+        Screen.Notes -> NotesScreen(
+            state = notes,
+            snackbar = snackbar,
+            actions = NotesActions(
+                back = model::back,
+                search = model.more::loadNotes,
+                open = model.more::openNote,
+                create = model.more::newNote,
+                close = model.more::closeNote,
+                save = { note, content, then -> model.more.saveNote(note, content, { name -> context.getString(R.string.note_conflict_saved, name) }, then) },
+                rename = model.more::renameNote,
+                delete = model.more::deleteNote,
             ),
         )
         Screen.Analytics -> AnalyticsScreen(

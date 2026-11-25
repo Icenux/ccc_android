@@ -236,6 +236,31 @@ class CccApi(
 
     suspend fun runRoutine(id: Int): RoutineRun = post("routines/$id/run", "{}")
 
+    // --- ccc's own notes (Markdown files on the computer, ccc #223) -------------------------------------
+
+    /** The notes, the newest first, without text; [query] keeps those with it in the path or the text. */
+    suspend fun notes(query: String = ""): List<Note> = get("notes", if (query.isBlank()) emptyMap() else mapOf("q" to query))
+
+    /** One note with its text and the `version` a change has to send back. */
+    suspend fun note(path: String): Note = get("notes/item", mapOf("path" to path))
+
+    /** A new note; 409 when the path is taken (an existing note is never overwritten). */
+    suspend fun createNote(path: String, content: String): Note =
+        post("notes", body("path" to JsonPrimitive(path), "content" to JsonPrimitive(content)))
+
+    /** Change a note read as [version]; 409 when it changed since, and nothing is written. */
+    suspend fun updateNote(path: String, content: String, version: String): Note = post(
+        "notes/item", body("path" to JsonPrimitive(path), "content" to JsonPrimitive(content), "version" to JsonPrimitive(version)))
+
+    /** Rename a note, or move it to another folder ([to] is a path). */
+    suspend fun renameNote(path: String, to: String): Note =
+        post("notes/rename", body("path" to JsonPrimitive(path), "to" to JsonPrimitive(to)))
+
+    /** Remove a note (the file moves to ccc's own folder on the computer, it is not erased). */
+    suspend fun deleteNote(path: String) {
+        call<Unit>(request("notes/item", mapOf("path" to path)).delete().build())
+    }
+
     // --- Claude Code subagents (the files in .claude/agents) ---------------------------------------
 
     /** The agents of [path]'s project and the user's; an empty [path] gives only the user's. */
