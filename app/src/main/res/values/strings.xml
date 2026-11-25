@@ -499,4 +499,34 @@
     <string name="unreachable_text">The app can\'t connect to %1$s. The computer may be off or out of your tailnet, or ccc may have moved to another computer.</string>
     <string name="unreachable_retry">Try again</string>
     <string name="unreachable_change">Connect to another computer</string>
+
+    <!-- What a conversation's subagents did (ccc #286) -->
+    <string name="runs_title">Subagents</string>
+    <string name="runs_live">LIVE</string>
+    <string name="runs_show_all">Show all</string>
+    <string name="runs_stat">subagents</string>
+    <string name="runs_empty">This conversation has not started any subagent.</string>
+    <string name="runs_unavailable">This ccc does not know subagent runs yet. Update ccc on the computer.</string>
+    <string name="runs_sum_total">runs</string>
+    <string name="runs_sum_running">running</string>
+    <string name="runs_sum_errors">errors</string>
+    <string name="runs_sum_time">total</string>
+    <string name="runs_sum_tokens">tokens</string>
+    <string name="run_done">done</string>
+    <string name="run_error">error</string>
+    <string name="run_stopped">cut off</string>
+    <string name="run_running">running</string>
+    <string name="run_started">started</string>
+    <string name="run_took">took</string>
+    <string name="run_model">model</string>
+    <string name="run_tools">tools</string>
+    <string name="run_tokens">tokens</string>
+    <string name="run_by">called by %1$s</string>
+    <string name="run_by_conversation">the conversation</string>
+    <string name="run_tab_prompt">Prompt</string>
+    <string name="run_tab_steps">Steps</string>
+    <string name="run_tab_result">Result</string>
+    <string name="run_no_result">No result yet.</string>
+    <string name="run_no_steps">No steps yet.</string>
+    <string name="run_step_nested">→ subagent</string>
 </resources>

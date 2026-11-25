@@ -497,4 +497,34 @@
     <string name="unreachable_text">Aplikace se nemůže připojit k %1$s. Počítač může být vypnutý nebo mimo tvůj tailnet, nebo se ccc přestěhovalo na jiný počítač.</string>
     <string name="unreachable_retry">Zkusit znovu</string>
     <string name="unreachable_change">Připojit k jinému počítači</string>
+
+    <!-- Co dělali subagenti konverzace (ccc #286) -->
+    <string name="runs_title">Subagenti</string>
+    <string name="runs_live">ŽIVĚ</string>
+    <string name="runs_show_all">Zobrazit vše</string>
+    <string name="runs_stat">subagenti</string>
+    <string name="runs_empty">Tato konverzace zatím nespustila žádného subagenta.</string>
+    <string name="runs_unavailable">Tento ccc ještě neumí běhy subagentů. Aktualizuj ccc v počítači.</string>
+    <string name="runs_sum_total">běhů</string>
+    <string name="runs_sum_running">běží</string>
+    <string name="runs_sum_errors">chyb</string>
+    <string name="runs_sum_time">celkem</string>
+    <string name="runs_sum_tokens">tokenů</string>
+    <string name="run_done">hotovo</string>
+    <string name="run_error">chyba</string>
+    <string name="run_stopped">přerušen</string>
+    <string name="run_running">běží</string>
+    <string name="run_started">start</string>
+    <string name="run_took">trval</string>
+    <string name="run_model">model</string>
+    <string name="run_tools">nástrojů</string>
+    <string name="run_tokens">tokenů</string>
+    <string name="run_by">vyvolal %1$s</string>
+    <string name="run_by_conversation">konverzace</string>
+    <string name="run_tab_prompt">Zadání</string>
+    <string name="run_tab_steps">Průběh</string>
+    <string name="run_tab_result">Výsledek</string>
+    <string name="run_no_result">Výsledek zatím není.</string>
+    <string name="run_no_steps">Zatím žádné kroky.</string>
+    <string name="run_step_nested">→ subagent</string>
 </resources>

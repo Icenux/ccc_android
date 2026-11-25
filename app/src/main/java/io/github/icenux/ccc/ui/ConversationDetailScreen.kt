@@ -48,6 +48,8 @@ class DetailActions(
     val chat: () -> Unit,
     val queue: () -> Unit,
     val goal: () -> Unit,
+    val subagents: () -> Unit,
+    val openRun: (io.github.icenux.ccc.data.SubagentRun) -> Unit,
     val decide: (Permission, String) -> Unit,
 )
 
@@ -57,6 +59,7 @@ fun ConversationDetailScreen(
     conversation: Conversation?,
     permissions: List<Permission>,
     overview: Overview?,
+    subagentRuns: io.github.icenux.ccc.data.SubagentRuns?,
     snackbar: SnackbarHostState,
     actions: DetailActions,
 ) {
@@ -106,6 +109,10 @@ fun ConversationDetailScreen(
                             DetailStat(context.text, stringResource(R.string.detail_context), Modifier.weight(1f), contextColor(context))
                             Divider()
                         }
+                        subagentRuns?.takeIf { it.summary.total > 0 }?.let { runs ->
+                            DetailStat(runs.summary.total.toString(), stringResource(R.string.runs_stat), Modifier.weight(1f), if (runs.summary.running > 0) CccColors.Amber else CccColors.Text)
+                            Divider()
+                        }
                         DetailStat(
                             git?.let { "+${it.added} −${it.removed}" } ?: "–",
                             stringResource(R.string.detail_changes), Modifier.weight(1f),
@@ -134,6 +141,7 @@ fun ConversationDetailScreen(
                         }
                     }
                 }
+                subagentsSection(subagentRuns, actions.subagents, actions.openRun)
                 if (overview != null) overviewItems(overview)
                 else conversation.git?.takeIf { it.added > 0 || it.removed > 0 || it.branch != null }?.let { git ->
                     item(key = "changes") {

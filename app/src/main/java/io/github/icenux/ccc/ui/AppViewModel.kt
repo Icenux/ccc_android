@@ -52,6 +52,9 @@ sealed interface Screen {
     data class Conversation(val id: Int) : Screen
     /** A conversation's overview: numbers and what waits for you (the Dashboard's rows open it). */
     data class ConversationDetail(val id: Int) : Screen
+    /** What the conversation's subagents did (ccc #286), and one run of them. */
+    data class SubagentRuns(val id: Int) : Screen
+    data class SubagentRunDetail(val id: Int, val agentId: String) : Screen
     data object Approvals : Screen
     data object NewConversation : Screen
     data object Search : Screen
@@ -76,6 +79,7 @@ data class AppUpdateState(val phase: Phase = Phase.IDLE, val progress: Float = 0
 
 /** How often the open chat reads the terminal for a question of Claude Code. */
 private const val PROMPT_POLL_MS = 2_000L
+private const val SUBAGENTS_POLL_MS = 3_000L
 
 /** How often the app looks for a new release when it comes to the foreground. */
 private const val RELEASE_CHECK_MS = 6 * 60 * 60 * 1000L
@@ -168,7 +172,22 @@ data class NewConversationState(
 data class TasksState(val id: Int, val tasks: io.github.icenux.ccc.data.Tasks? = null)
 
 /** The overview of conversation [id] (null until loaded; [failed] when this ccc does not know it). */
-data class OverviewState(val id: Int, val overview: io.github.icenux.ccc.data.Overview? = null, val failed: Boolean = false)
+data class OverviewState(
+    val id: Int,
+    val overview: io.github.icenux.ccc.data.Overview? = null,
+    val failed: Boolean = false,
+    /** The subagent runs for the detail's section (null: none yet, or an older ccc). */
+    val subagents: io.github.icenux.ccc.data.SubagentRuns? = null,
+)
+
+/** The subagent runs of conversation [id]; [run] is the opened one ([runId]) with its prompt, steps and result. */
+data class RunsState(
+    val id: Int,
+    val runs: io.github.icenux.ccc.data.SubagentRuns? = null,
+    val failed: Boolean = false,
+    val runId: String = "",
+    val run: io.github.icenux.ccc.data.SubagentRun? = null,
+)
 
 data class SearchState(val query: String = "", val hits: List<SearchHit> = emptyList(), val searching: Boolean = false)
 
@@ -217,6 +236,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _overview = MutableStateFlow<OverviewState?>(null)
     val overview: StateFlow<OverviewState?> = _overview.asStateFlow()
+
+    private val _subagents = MutableStateFlow<RunsState?>(null)
+    val subagents: StateFlow<RunsState?> = _subagents.asStateFlow()
+    private var subagentsPoll: Job? = null
 
     private val _search = MutableStateFlow(SearchState())
     val search: StateFlow<SearchState> = _search.asStateFlow()
@@ -451,6 +474,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 _overview.value = OverviewState(screen.id)
                 action { reloadOverview(screen.id) }
             }
+            is Screen.SubagentRuns -> openSubagents(screen.id, "")
+            is Screen.SubagentRunDetail -> openSubagents(screen.id, screen.agentId)
             is Screen.Agents -> more.openAgents(screen.id)
             Screen.Routines -> more.loadRoutines()
             Screen.Subagents -> more.openSubagents()
@@ -1071,9 +1096,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val client = api ?: return
         // Not through guard {}: an older ccc has no overview, which is no error to show, the screen just
         // keeps what the list knows.
+        runCatching { client.subagentRuns(id) }
+            .onSuccess { runs -> _overview.update { if (it?.id == id) it.copy(subagents = runs) else it } }
         runCatching { client.overview(id) }
             .onSuccess { overview -> _overview.update { if (it?.id == id) it.copy(overview = overview, failed = false) else it } }
             .onFailure { _overview.update { state -> if (state?.id == id && state.overview == null) state.copy(failed = true) else state } }
+    }
+
+    // --- the subagents (ccc #286) ----------------------------------------------------------------------
+
+    /** The runs screen ([runId] empty) or one run's; it follows the running ones every few seconds while it is on top. */
+    private fun openSubagents(id: Int, runId: String) {
+        _subagents.update { old -> if (old?.id == id) old.copy(runId = runId, run = old.run?.takeIf { it.id == runId }) else RunsState(id, runId = runId) }
+        subagentsPoll?.cancel()
+        subagentsPoll = viewModelScope.launch {
+            while (true) {
+                reloadSubagents()
+                delay(SUBAGENTS_POLL_MS)
+                if (_screens.value.lastOrNull().let { it !is Screen.SubagentRuns && it !is Screen.SubagentRunDetail }) break
+            }
+        }
+    }
+
+    private suspend fun reloadSubagents() {
+        val client = api ?: return
+        val state = _subagents.value ?: return
+        runCatching { client.subagentRuns(state.id) }
+            .onSuccess { runs -> _subagents.update { if (it?.id == state.id) it.copy(runs = runs, failed = false) else it } }
+            .onFailure { _subagents.update { s -> if (s?.id == state.id && s.runs == null) s.copy(failed = true) else s } }
+        if (state.runId.isNotEmpty()) {
+            runCatching { client.subagentRun(state.id, state.runId) }
+                .onSuccess { run -> _subagents.update { if (it?.id == state.id && it.runId == state.runId) it.copy(run = run) else it } }
+        }
     }
 
     // --- the task queue --------------------------------------------------------------------------------
