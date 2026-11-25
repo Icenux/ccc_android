@@ -93,7 +93,7 @@ fun destOf(screen: Screen, tab: HomeTab): Dest = when (screen) {
 fun hasBottomBar(screen: Screen): Boolean = when (screen) {
     Screen.Conversations, is Screen.ConversationDetail, is Screen.Tasks, is Screen.Agents, is Screen.SubagentRuns,
     is Screen.SubagentRunDetail,
-    Screen.Routines, Screen.Subagents, Screen.Analytics, Screen.CccSettings, Screen.Approvals -> true
+    Screen.Routines, Screen.Subagents, Screen.Notes, Screen.Analytics, Screen.CccSettings, Screen.Approvals -> true
     else -> false
 }
 
@@ -265,6 +265,7 @@ private fun SideMenu(state: ShellState, actions: ShellActions, drawer: DrawerSta
         MenuEntry(HudIcons.Archive, stringResource(R.string.archive), CccColors.Dim, onMain && home.tab == HomeTab.ARCHIVE,
             home.archived.size.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.ARCHIVE) },
         MenuEntry(HudIcons.Helper, stringResource(R.string.subagents), CccColors.Claude, screen == Screen.Subagents) { it.screen(Screen.Subagents) },
+        MenuEntry(HudIcons.Notes, stringResource(R.string.notes), CccColors.Waiting, screen == Screen.Notes) { it.screen(Screen.Notes) },
         MenuEntry(HudIcons.Live, stringResource(R.string.live_sessions), pink, onMain && home.tab == HomeTab.SESSIONS,
             state.liveSessions?.takeIf { it > 0 }?.toString()) { it.tab(HomeTab.SESSIONS) },
     )

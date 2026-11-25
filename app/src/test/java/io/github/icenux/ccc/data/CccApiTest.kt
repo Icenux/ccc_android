@@ -481,4 +481,65 @@ class CccApiTest {
         assertEquals("08.11. 09:05", overviewTime("2026-11-08T09:05:00", today))
         assertEquals("–", overviewTime(null, today))
     }
+
+    @Test
+    fun `lists, reads and searches notes with the path in the query`() = runBlocking {
+        answers["notes"] = 200 to """[{"path": "ideas/api.md", "title": "API", "size": 12, "modified": "2026-11-25T18:21:00+01:00", "version": "12-1"}]"""
+        answers["notes/item"] = 200 to """{"path": "ideas/api.md", "title": "API", "size": 12, "modified": "2026-11-25T18:21:00+01:00",
+            "version": "12-1", "content": "# API\nplan\n"}"""
+
+        val listed = api().notes("api pl")
+        val one = api().note("ideas/api.md")
+
+        assertEquals("ideas/api.md", listed.single().path)
+        assertEquals("", listed.single().content)  // the list has no text
+        assertEquals("# API\nplan\n", one.content)
+        assertEquals("12-1", one.version)
+        assertEquals("/api/v1/notes?q=api%20pl", seen[0].uri)
+        assertEquals("/api/v1/notes/item?path=ideas%2Fapi.md", seen[1].uri)
+    }
+
+    @Test
+    fun `a note change sends the version and a stale one is refused with 409`() = runBlocking {
+        answers["notes/item"] = 409 to """{"error": "The note changed since you opened it."}"""
+
+        try {
+            api().updateNote("a.md", "new", "5-1")
+            fail("expected a 409")
+        } catch (e: ApiException) {
+            assertEquals(409, e.code)
+            assertEquals("The note changed since you opened it.", e.message)
+        }
+
+        assertEquals("POST", seen.single().method)
+        assertTrue(seen.single().body.contains(""""version":"5-1""""))
+        assertTrue(seen.single().body.contains(""""path":"a.md""""))
+    }
+
+    @Test
+    fun `creates, renames and deletes a note`() = runBlocking {
+        answers["notes"] = 201 to """{"path": "a.md", "title": "a", "version": "0-1", "content": ""}"""
+        answers["notes/rename"] = 200 to """{"path": "work/b.md", "title": "b", "version": "0-1", "content": ""}"""
+        answers["notes/item"] = 200 to """{"ok": true}"""
+
+        assertEquals("a.md", api().createNote("a.md", "").path)
+        assertEquals("work/b.md", api().renameNote("a.md", "work/b.md").path)
+        api().deleteNote("work/b.md")
+
+        assertEquals(listOf("POST /api/v1/notes", "POST /api/v1/notes/rename", "DELETE /api/v1/notes/item?path=work%2Fb.md"),
+            seen.map { "${it.method} ${it.uri}" })
+        assertTrue(seen[1].body.contains(""""to":"work/b.md""""))
+    }
+
+    @Test
+    fun `a name typed for a note gets the extension and the conflict copy a number`() {
+        assertEquals("ideas/api.md", Note.pathOf(" ideas/api "))
+        assertEquals("a.MD", Note.pathOf("a.MD"))  // already has it: left as typed
+        assertEquals("a.md", Note.pathOf("/a/"))
+        assertEquals("", Note.pathOf("  "))
+        assertEquals("a/b (conflict).md", Note.conflictPath("a/b.md", 1))
+        assertEquals("a/b (conflict 3).md", Note.conflictPath("a/b.md", 3))
+        assertTrue(Note("x").isNew)
+        assertFalse(Note("x", version = "1-2").isNew)
+    }
 }

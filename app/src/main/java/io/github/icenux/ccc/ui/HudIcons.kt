@@ -69,6 +69,14 @@ object HudIcons {
         moveTo(9f, 15f); lineTo(11f, 17f); lineTo(15f, 13f)
     }
 
+    /** A sheet of paper with lines of text (the notes). */
+    val Notes = icon("Notes") {
+        moveTo(6f, 3f); lineTo(14f, 3f); lineTo(18f, 7f); lineTo(18f, 21f); lineTo(6f, 21f); close()
+        moveTo(14f, 3f); lineTo(14f, 7f); lineTo(18f, 7f)
+        moveTo(9f, 12f); lineTo(15f, 12f)
+        moveTo(9f, 16f); lineTo(15f, 16f)
+    }
+
     /** A helper: a small head with an antenna (the Claude Code agents). */
     val Helper = icon("Helper") {
         box(5f, 8f, 19f, 20f)

@@ -267,6 +267,25 @@
     <string name="routine_run">Spustit hned</string>
     <string name="routines">Rutiny</string>
     <string name="routines_empty">Zatím žádné rutiny.</string>
+    <!-- Vlastní poznámky ccc (soubory Markdown sdílené s počítačem, ccc #223) -->
+    <string name="notes">Poznámky</string>
+    <string name="notes_hint">Poznámky v Markdownu uložené ve složce ccc na počítači: co tady napíšeš, je v ccc za okamžik, a naopak.</string>
+    <string name="notes_search">Hledat v poznámkách</string>
+    <string name="notes_empty">Zatím žádné poznámky. První napíšeš tlačítkem +.</string>
+    <string name="notes_no_match">Nic nenalezeno.</string>
+    <string name="note_add">Nová poznámka</string>
+    <string name="note_name">Název</string>
+    <string name="note_name_hint">Může začínat složkou: napady/api</string>
+    <string name="note_text">Text (Markdown)</string>
+    <string name="note_preview">Náhled</string>
+    <string name="note_write">Psát</string>
+    <string name="note_rename">Přejmenovat</string>
+    <string name="note_delete_title">Smazat poznámku</string>
+    <string name="note_delete_text">Smazat poznámku %1$s? Soubor se přesune do složky deleted-notes u ccc na počítači, nemaže se.</string>
+    <string name="note_discard_title">Neuložený text</string>
+    <string name="note_discard_text">Změny nejsou uložené. Odejít bez uložení?</string>
+    <string name="note_discard">Odejít</string>
+    <string name="note_conflict_saved">Poznámka se mezitím na počítači změnila. Tvoje úprava je uložená jako %1$s.</string>
     <!-- Agenti Claude Code (soubory v .claude/agents) -->
     <string name="subagents">Agenti</string>
     <string name="subagents_hint">Pomocníci s jedním úkolem, které Claude Code volá sám. Každý je soubor v .claude/agents projektu nebo ve tvé složce.</string>

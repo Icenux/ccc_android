@@ -64,6 +64,8 @@ sealed interface Screen {
     data object Routines : Screen
     /** The Claude Code agents: the files in .claude/agents. (Not [Agents]: those are a conversation's reviews, goals and workflows.) */
     data object Subagents : Screen
+    /** ccc's own Markdown notes, shared with the computer (ccc #223). */
+    data object Notes : Screen
     data object Analytics : Screen
     data object CccSettings : Screen
     /** A conversation's Claude Code, live. */
@@ -479,6 +481,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             is Screen.Agents -> more.openAgents(screen.id)
             Screen.Routines -> more.loadRoutines()
             Screen.Subagents -> more.openSubagents()
+            Screen.Notes -> { more.closeNote(); more.openNotes() }
             Screen.Analytics -> more.loadAnalytics()
             Screen.CccSettings -> { more.clearSettings(); more.loadSettings() }
             is Screen.Terminal -> more.openTerminal(screen.id, { api }, { foreground && _screens.value.lastOrNull() == screen })
