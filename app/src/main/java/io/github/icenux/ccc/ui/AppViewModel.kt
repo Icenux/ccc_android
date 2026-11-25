@@ -119,6 +119,8 @@ data class HomeState(
     val refreshing: Boolean = false,
     /** The events stream is open: what the app shows is current. */
     val live: Boolean = false,
+    /** ccc hasn't answered for a while and nothing was loaded: the screen offers to try again or connect elsewhere (#72). */
+    val unreachable: Boolean = false,
 ) {
     val showArchive: Boolean get() = tab == HomeTab.ARCHIVE
 }
@@ -179,6 +181,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _home = MutableStateFlow(HomeState())
     val home: StateFlow<HomeState> = _home.asStateFlow()
+
+    private val reachability = io.github.icenux.ccc.data.Reachability()
+
+    /** A failed attempt to reach ccc; before anything was loaded, enough of them show the choice (#72). */
+    private fun serverFailed() {
+        if (_home.value.loaded) return  // the list is there: the "offline" mark is enough
+        if (reachability.failed()) _home.update { it.copy(unreachable = true) }
+    }
+
+    /** ccc answered. */
+    private fun serverReached() {
+        reachability.reached()
+        _home.update { if (it.unreachable) it.copy(unreachable = false) else it }
+    }
+
+    /** "Try again" of the unreachable screen: count from zero and look once more. */
+    fun retryServer() {
+        serverReached()
+        restartEvents()
+        viewModelScope.launch { refresh() }
+    }
+
+    /** "Connect to another computer": the connection screen over the list; the old pairing stays until a new one works. */
+    fun changeServer() = open(Screen.Setup)
 
     private val _conversation = MutableStateFlow<ConversationState?>(null)
     val conversation: StateFlow<ConversationState?> = _conversation.asStateFlow()
@@ -490,6 +516,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 settings.save(server, token)
                 api = api(server, token)
                 previous?.let { signOutOwnDevice(it) }
+                reachability.reached()
                 _home.value = HomeState()
                 _screens.value = listOf(Screen.Conversations)
                 restartEvents()
@@ -605,6 +632,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         settings.clear()
         api = null
         events?.cancel()
+        reachability.reached()
         _home.value = HomeState()
         _conversation.value = null
         _devices.value = null
@@ -636,6 +664,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     client.events().collect { event ->
                         when (event) {
                             ServerEvent.Connected -> {
+                                serverReached()
                                 wait = 1_000L
                                 _home.update { it.copy(live = true) }
                                 refresh()
@@ -652,6 +681,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _message.value = describe(e)
                         return@launch
                     }
+                    if (e !is ApiException) serverFailed()  // an answer, even an error, means ccc is there
                 } catch (e: SerializationException) {
                     // An unreadable event must not end the stream for good: connect again and reload.
                 }
@@ -708,9 +738,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _home.update {
                 it.copy(
                     status = status, conversations = conversations, permissions = permissions, archived = archived,
-                    waiting = waiting, ownGroups = groups.own, promptPresets = presets, loaded = true,
+                    waiting = waiting, ownGroups = groups.own, promptPresets = presets, loaded = true, unreachable = false,
                 )
             }
+            reachability.reached()
             viewModelScope.launch {
                 val usage = runCatching { client.usage() }.getOrNull()
                 _home.update { it.copy(usage = usage) }
@@ -1154,6 +1185,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         throw e
     } catch (e: IOException) {
         _message.value = describe(e)
+        if (e !is ApiException) serverFailed()
         false
     } catch (e: kotlinx.serialization.SerializationException) {
         // The server answered, but with something this app cannot read (an older or newer ccc): say so, do not crash.
