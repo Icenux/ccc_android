@@ -22,7 +22,9 @@ val appBuild: Int = runCatching {
 
 android {
     namespace = "io.github.icenux.ccc"
-    compileSdk = 36
+    compileSdk {
+        version = release(37) { minorApiLevel = 1 }  // Compose 1.13 needs Android 37.1
+    }
 
     defaultConfig {
         applicationId = "io.github.icenux.ccc"

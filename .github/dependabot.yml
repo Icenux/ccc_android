@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Gradle: Dependabot reads gradle/libs.versions.toml (the version catalog), the plugins in it
+  # (AGP, Kotlin) and gradle/wrapper/gradle-wrapper.properties. Updates arrive as a weekly PR,
+  # and the CI workflow (unit tests) runs on it.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      gradle:
+        patterns: ["*"]
+  # GitHub Actions used in .github/workflows (checkout, setup-java, upload-artifact, ...).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
