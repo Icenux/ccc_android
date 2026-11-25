@@ -52,6 +52,8 @@ import io.github.icenux.ccc.ui.ShellState
 import io.github.icenux.ccc.ui.ShellActions
 import io.github.icenux.ccc.ui.ConversationDetailScreen
 import io.github.icenux.ccc.ui.DetailActions
+import io.github.icenux.ccc.ui.SubagentRunScreen
+import io.github.icenux.ccc.ui.SubagentRunsScreen
 import io.github.icenux.ccc.ui.NewConversationSheet
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -111,6 +113,7 @@ private fun App(model: AppViewModel) {
     val invite by model.invite.collectAsStateWithLifecycle()
     val conversation by model.conversation.collectAsStateWithLifecycle()
     val overview by model.overview.collectAsStateWithLifecycle()
+    val runsState by model.subagents.collectAsStateWithLifecycle()
     val newConversation by model.newConversation.collectAsStateWithLifecycle()
     val message by model.message.collectAsStateWithLifecycle()
     val search by model.search.collectAsStateWithLifecycle()
@@ -478,14 +481,29 @@ private fun App(model: AppViewModel) {
             conversation = (home.conversations + home.archived).firstOrNull { it.id == screen.id },
             permissions = home.permissions.filter { it.conversationId == screen.id },
             overview = overview?.takeIf { it.id == screen.id }?.overview,
+            subagentRuns = overview?.takeIf { it.id == screen.id }?.subagents,
             snackbar = snackbar,
             actions = DetailActions(
                 back = model::back,
                 chat = { model.open(Screen.Conversation(screen.id)) },
                 queue = { model.open(Screen.Tasks(screen.id)) },
                 goal = { model.open(Screen.Agents(screen.id, 1)) },
+                subagents = { model.open(Screen.SubagentRuns(screen.id)) },
+                openRun = { model.open(Screen.SubagentRunDetail(screen.id, it.id)) },
                 decide = model::decide,
             ),
+        )
+        is Screen.SubagentRuns -> SubagentRunsScreen(
+            conversationName = (home.conversations + home.archived).firstOrNull { it.id == screen.id }?.name.orEmpty(),
+            state = runsState?.takeIf { it.id == screen.id },
+            onBack = model::back,
+            onOpen = { model.open(Screen.SubagentRunDetail(screen.id, it.id)) },
+        )
+        is Screen.SubagentRunDetail -> SubagentRunScreen(
+            conversationName = (home.conversations + home.archived).firstOrNull { it.id == screen.id }?.name.orEmpty(),
+            state = runsState?.takeIf { it.id == screen.id && it.runId == screen.agentId },
+            onBack = model::back,
+            onOpenRun = { model.open(Screen.SubagentRunDetail(screen.id, it)) },
         )
      }
     }

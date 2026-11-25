@@ -84,14 +84,15 @@ fun destOf(screen: Screen, tab: HomeTab): Dest = when (screen) {
         HomeTab.CONVERSATIONS, HomeTab.ARCHIVE -> Dest.CHATS
         HomeTab.TASKS, HomeTab.SESSIONS -> Dest.MORE
     }
-    is Screen.Conversation, is Screen.ConversationDetail, Screen.Search -> Dest.CHATS
+    is Screen.Conversation, is Screen.ConversationDetail, is Screen.SubagentRuns, is Screen.SubagentRunDetail, Screen.Search -> Dest.CHATS
     Screen.Analytics -> Dest.ANALYTICS
     else -> Dest.MORE
 }
 
 /** Screens that carry the bottom bar: the others (the chat with its message field, sheets, sign-in) use the whole screen. */
 fun hasBottomBar(screen: Screen): Boolean = when (screen) {
-    Screen.Conversations, is Screen.ConversationDetail, is Screen.Tasks, is Screen.Agents,
+    Screen.Conversations, is Screen.ConversationDetail, is Screen.Tasks, is Screen.Agents, is Screen.SubagentRuns,
+    is Screen.SubagentRunDetail,
     Screen.Routines, Screen.Subagents, Screen.Analytics, Screen.CccSettings, Screen.Approvals -> true
     else -> false
 }

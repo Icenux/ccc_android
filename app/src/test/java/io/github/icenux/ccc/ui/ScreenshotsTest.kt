@@ -203,6 +203,16 @@ open class ScreenshotsTest {
             SubagentsActions({}, {}, {}, {}, {}, { _, _ -> }, {}, { _, _, _, _ -> }))
     }
 
+    @Test
+    fun subagent_runs() = shot("subagent_runs", "Find usages") {
+        SubagentRunsScreen("shop-api", RunsState(1, runs = runsSample), {}, {})
+    }
+
+    @Test
+    fun subagent_run() = shot("subagent_run", "Run the API tests") {
+        SubagentRunScreen("shop-api", RunsState(1, runs = runsSample, runId = "a2", run = runsSample.runs[1]), {}, {})
+    }
+
     /** A dialog with a text field never gets "idle" in Robolectric (the cursor keeps blinking): the clock is stepped by hand. */
     @Test
     fun subagent_create() {
@@ -328,8 +338,8 @@ open class ScreenshotsTest {
     @Test
     fun conversationDetail() = shot("conversation_detail", "pytest -q tests/api") {
         shell(HomeTab.CONVERSATIONS, Screen.ConversationDetail(1)) {
-            ConversationDetailScreen(home.conversations.first(), listOf(permission), overviewSample, SnackbarHostState(),
-                DetailActions({}, {}, {}, {}, { _, _ -> }))
+            ConversationDetailScreen(home.conversations.first(), listOf(permission), overviewSample, null, SnackbarHostState(),
+                DetailActions({}, {}, {}, {}, {}, {}, { _, _ -> }))
         }
     }
 
@@ -479,6 +489,24 @@ open class ScreenshotsTest {
                     "every day at 22:00", nextRunAt = "2026-10-22T22:00:00", lastStatus = "queued in its conversation"),
                 Routine(2, 3, "data-pipeline", "Weekly report", "Summarise last week's failed jobs", "weekly", "monday 08:00",
                     "Mondays at 08:00", fresh = true, enabled = false),
+            ),
+        )
+
+        val runsSample = io.github.icenux.ccc.data.SubagentRuns(
+            io.github.icenux.ccc.data.SubagentSummary(total = 3, running = 1, errors = 0, spanMs = 423_000, tokens = 186_400),
+            listOf(
+                io.github.icenux.ccc.data.SubagentRun("a1", kind = "Explore", description = "Find usages of the API client", status = "done",
+                    started = "2026-10-22T10:00:00Z", ended = "2026-10-22T10:02:10Z", durationMs = 130_000, tokens = 52_000, toolCount = 14, model = "haiku"),
+                io.github.icenux.ccc.data.SubagentRun("a2", kind = "test-runner", description = "Run the API tests", status = "done",
+                    started = "2026-10-22T10:02:20Z", ended = "2026-10-22T10:05:00Z", durationMs = 160_000, tokens = 98_400, toolCount = 6, model = "haiku",
+                    background = true, prompt = "Run pytest -q tests/api and report only the failures.",
+                    result = "42 passed, 1 failed: tests/api/test_orders.py::test_refund.",
+                    steps = listOf(
+                        io.github.icenux.ccc.data.SubagentStep(0, "Bash", "pytest -q tests/api", offsetMs = 1_000, durationMs = 120_000, error = "Exit code 1"),
+                        io.github.icenux.ccc.data.SubagentStep(1, "Read", "tests/api/test_orders.py", offsetMs = 125_000, durationMs = 2_000),
+                    )),
+                io.github.icenux.ccc.data.SubagentRun("a3", parentId = "a1", kind = "Explore", description = "Check the callers in the app", status = "running",
+                    started = "2026-10-22T10:01:00Z", durationMs = 70_000, tokens = 36_000, toolCount = 5, model = "haiku", depth = 2),
             ),
         )
 

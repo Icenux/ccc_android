@@ -82,6 +82,12 @@ class CccApi(
     /** The conversation at a glance: now, changes, usage, errors (older ccc: 404). */
     suspend fun overview(id: Int): Overview = get("conversations/$id/overview")
 
+    /** What the conversation's subagents did, oldest first (ccc #286; an older ccc: 404). */
+    suspend fun subagentRuns(id: Int): SubagentRuns = get("conversations/$id/subagents")
+
+    /** One subagent run with its prompt, steps and result. */
+    suspend fun subagentRun(id: Int, agentId: String): SubagentRun = get("conversations/$id/subagents/$agentId")
+
     /** Transcript events: the newest [limit], or those after / before an index. */
     suspend fun messages(id: Int, after: Int? = null, before: Int? = null, limit: Int = 100): Messages =
         get(
