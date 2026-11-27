@@ -2,7 +2,8 @@
 
 The phone client of [ccc](https://github.com/Icenux/ccc_TUI), a terminal app for working with Claude Code.
 With it you can read your conversations, send messages, approve or deny tool calls, start new
-conversations and check the usage limits — from your phone, privately over
+conversations, see what Claude's subagents did, keep Markdown notes shared with ccc and check the
+usage limits — from your phone, privately over
 [Tailscale](https://tailscale.com). It needs a running ccc on your computer with its API turned on
 ([how](https://github.com/Icenux/ccc_TUI/blob/main/src/ccc/help/android-api.md)).
 
